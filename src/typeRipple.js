@@ -30,22 +30,20 @@ class TypeRipple {
     if (!elementObj) {
       throw new Error("This element id doesn't exit.");
     }
-
-    this.#rootElement = elementObj;
     this.#rippleTime = rippleTime;
     this.#stageSize = {
-      width: Math.round(this.#rootElement.getBoundingClientRect().width),
-      height: Math.round(this.#rootElement.getBoundingClientRect().height),
+      width: Math.round(elementObj.getBoundingClientRect().width),
+      height: Math.round(elementObj.getBoundingClientRect().height),
     };
     this.#text = elementObj.innerText;
-    elementObj.innerText = '';
-    this.#rootStyle = window.getComputedStyle(this.#rootElement);
+    this.#rootStyle = window.getComputedStyle(elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
 
-    this.#initCanvases();
+    this.#createRootElement(elementObj);
+    this.#createCanvases();
 
     this.#textFrameMetrics = new TextFrame(
-      this.#rootElement,
+      this.#rootStyle,
       this.#stageSize
     ).getMetrics(this.#ctx, this.#text);
 
@@ -59,7 +57,15 @@ class TypeRipple {
     this.#setFillTimer();
   }
 
-  #initCanvases() {
+  #createRootElement(elementObj) {
+    this.#rootElement = document.createElement('div');
+    elementObj.parentElement.append(this.#rootElement);
+    this.#rootElement.append(elementObj);
+
+    elementObj.style.display = 'none';
+  }
+
+  #createCanvases() {
     this.#canvas = document.createElement('canvas');
     this.#ctx = this.#canvas.getContext('2d');
     this.#canvas.width = this.#stageSize.width;

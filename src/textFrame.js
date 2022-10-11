@@ -1,10 +1,10 @@
 class TextFrame {
-  #fontFormat;
+  #rootStyle;
   #stageRect;
   #baseLinePos;
 
-  constructor(parentElement, stageRect) {
-    this.#fontFormat = window.getComputedStyle(parentElement);
+  constructor(rootStyle, stageRect) {
+    this.#rootStyle = rootStyle;
     this.#stageRect = stageRect;
   }
 
@@ -13,9 +13,9 @@ class TextFrame {
 
     const fillStyle = this.#isTransparentBackground
       ? 'rgb(255, 255, 255)'
-      : this.#fontFormat.backgroundColor;
+      : this.#rootStyle.backgroundColor;
 
-    ctx.font = `${this.#fontFormat.fontWeight} ${this.#fontFormat.fontSize} ${this.#fontFormat.fontFamily}`; //prettier-ignore
+    ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
     ctx.fillStyle = fillStyle;
     ctx.textBaseline = 'middle';
 
@@ -33,14 +33,7 @@ class TextFrame {
 
   #drawTextFrame(ctx, text) {
     const totalTextMetrics = ctx.measureText(text);
-    this.#baseLinePos = {
-      x: (this.#stageRect.width - totalTextMetrics.width) / 2,
-      y:
-        (this.#stageRect.height +
-          totalTextMetrics.actualBoundingBoxAscent -
-          totalTextMetrics.actualBoundingBoxDescent) /
-        2,
-    };
+    this.#baseLinePos = this.#calculateBaseLinePos(totalTextMetrics);
 
     ctx.fillText(text, this.#baseLinePos.x, this.#baseLinePos.y);
   }
@@ -58,16 +51,6 @@ class TextFrame {
       }; // prettier-ignore
 
       textFields.push(textField);
-
-      // ctx.save();
-      // ctx.strokeStyle = 'rgb(255, 0, 0)';
-      // ctx.strokeRect(
-      //   textField.x,
-      //   textField.y,
-      //   textField.width,
-      //   textField.height
-      // );
-      // ctx.restore();
     }
 
     return textFields;
@@ -98,7 +81,7 @@ class TextFrame {
   }
 
   get #isTransparentBackground() {
-    const rgbaText = this.#fontFormat.backgroundColor;
+    const rgbaText = this.#rootStyle.backgroundColor;
     const openBracketIndex = rgbaText.indexOf('(');
     const closeBracketIndex = rgbaText.indexOf(')');
     const alpha = rgbaText
@@ -108,6 +91,37 @@ class TextFrame {
       .at(3);
 
     return alpha === 0;
+  }
+
+  #calculateBaseLinePos(textMetrics) {
+    const calculateBaseLinePosX = () => {
+      switch (this.#rootStyle.textAlign) {
+        case 'end':
+          return Math.round(this.#stageRect.width - textMetrics.width);
+        case 'center':
+          return Math.round((this.#stageRect.width - textMetrics.width) / 2);
+        case 'justify':
+          console.error("'justify' option doesn't work.");
+        case 'start':
+        default:
+          return 0;
+      }
+    };
+
+    // TODO: find more case
+    const calculateBaseLinePosY = () => {
+      return Math.round(
+        (this.#stageRect.height +
+          textMetrics.actualBoundingBoxAscent -
+          textMetrics.actualBoundingBoxDescent) /
+          2
+      );
+    };
+
+    return {
+      x: calculateBaseLinePosX(),
+      y: calculateBaseLinePosY(),
+    };
   }
 }
 
