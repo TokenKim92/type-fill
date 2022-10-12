@@ -24,8 +24,7 @@ class TextFrame {
       this.#drawTextFrame(ctx, text);
       textFields = this.#getTextFields(ctx, text);
     } else {
-      const textList = text.split(' ');
-
+      const textList = this.#getTextList(ctx, text);
       textList.forEach((text, index) => {
         this.#drawTextFrame(ctx, text, index);
         this.#getTextFields(ctx, text, index).forEach((textField) =>
@@ -41,6 +40,31 @@ class TextFrame {
       textFields,
       dotPositions,
     };
+  }
+
+  #getTextList(ctx, text) {
+    const textList = text.split(' ');
+    const newTextList = [];
+    let lineText = '';
+    let isOutOfStage = false;
+    let isLastText = false;
+
+    textList.forEach((text, index) => {
+      isOutOfStage =
+        ctx.measureText(lineText + text).width > this.#stageRect.width;
+      isLastText = index === textList.length - 1;
+
+      if (isOutOfStage) {
+        newTextList.push(lineText.trimEnd());
+        isLastText ? newTextList.push(text) : (lineText = text + ' ');
+      } else {
+        isLastText
+          ? newTextList.push(lineText + text)
+          : (lineText = lineText + text + ' ');
+      }
+    });
+
+    return newTextList;
   }
 
   #drawTextFrame(ctx, text, index = 0) {
