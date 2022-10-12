@@ -21,7 +21,7 @@ class Ripple {
     const fromLeftTop = distance(rect.x, rect.y, pos.x, pos.y);
     const fromRightTop = distance(rect.x + rect.width - 1, rect.y, pos.x, pos.y); // prettier-ignore
     const fromLeftBottom = distance(rect.x, rect.y + rect.height - 1, pos.x, pos.y); // prettier-ignore
-    const fromRightBottom = distance(rect.x + rect.y + rect.width - 1, rect.height - 1, pos.x, pos.y); // prettier-ignore
+    const fromRightBottom = distance(rect.x + rect.width - 1, rect.y +  rect.height - 1, pos.x, pos.y); // prettier-ignore
 
     return Math.max(fromLeftTop, fromRightTop, fromLeftBottom, fromRightBottom);
   }
