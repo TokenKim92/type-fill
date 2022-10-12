@@ -2,9 +2,9 @@ import Ripple from './ripple.js';
 import TextFrame from './textFrame.js';
 import { checkType, collide, primitiveType, colorToRGB } from './utils.js';
 
-class TypeRipple {
+class TypeFill {
   static FPS = 60;
-  static FPS_TIME = 1000 / TypeRipple.FPS;
+  static FPS_TIME = 1000 / TypeFill.FPS;
 
   #canvas;
   #ctx;
@@ -48,11 +48,10 @@ class TypeRipple {
     ).getMetrics(this.#ctx, this.#text);
 
     this.#rippleList = this.#textFrameMetrics.textFields.map(
-      (textField) =>
-        new Ripple(this.#rippleTime, TypeRipple.FPS_TIME, textField)
+      (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
     );
 
-    this.#targetRippleCount = this.#rippleTime / TypeRipple.FPS_TIME;
+    this.#targetRippleCount = this.#rippleTime / TypeFill.FPS_TIME;
 
     this.#setFillTimer();
   }
@@ -101,7 +100,7 @@ class TypeRipple {
 
       this.#fillText();
       this.#curRippleCount++;
-    }, TypeRipple.FPS_TIME);
+    }, TypeFill.FPS_TIME);
 
     this.#stopRippleTimer = () => clearInterval(intervalId);
   }
@@ -136,4 +135,4 @@ class TypeRipple {
   }
 }
 
-export default TypeRipple;
+export default TypeFill;
