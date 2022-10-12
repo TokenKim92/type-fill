@@ -58,25 +58,21 @@ class TextFrame {
 
   #getDotPositions(ctx, textFields) {
     const dots = [];
+    const imageData = ctx.getImageData(
+      0, 0, this.#stageRect.width, this.#stageRect.height
+    ); // prettier-ignore
 
     textFields.forEach((textField, index) => {
       dots.push(new Array());
-      const imageData = ctx.getImageData(
-        textField.x,
-        textField.y,
-        textField.width,
-        textField.height
-      );
 
-      for (let y = 0; y < textField.height; y++) {
-        for (let x = 0; x < textField.width; x++) {
-          const alpha = imageData.data[(x + y * textField.width) * 4 + 3];
-          if (alpha) {
-            dots[index].push({ x: x + textField.x, y: y + textField.y, alpha });
-          }
+      for (let y = textField.y; y < textField.y + textField.height; y++) {
+        for (let x = textField.x; x < textField.x + textField.width; x++) {
+          const alpha = imageData.data[(x + y * this.#stageRect.width) * 4 + 3];
+          alpha && dots[index].push({ x, y, alpha });
         }
       }
     });
+
     return dots;
   }
 
