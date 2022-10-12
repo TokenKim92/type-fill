@@ -1,7 +1,7 @@
 class TextFrame {
   #rootStyle;
   #stageRect;
-  #baseLinePos;
+  #baseLinePos = [];
 
   constructor(rootStyle, stageRect) {
     this.#rootStyle = rootStyle;
@@ -19,10 +19,22 @@ class TextFrame {
     ctx.fillStyle = fillStyle;
     ctx.textBaseline = 'middle';
 
-    this.#drawTextFrame(ctx, text);
-    const textFields = this.#getTextFields(ctx, text);
-    const dotPositions = this.#getDotPositions(ctx, textFields);
+    let textFields = [];
+    if (this.#lineCount === 1) {
+      this.#drawTextFrame(ctx, text);
+      textFields = this.#getTextFields(ctx, text);
+    } else {
+      const textList = text.split(' ');
 
+      textList.forEach((text, index) => {
+        this.#drawTextFrame(ctx, text, index);
+        this.#getTextFields(ctx, text, index).forEach((textField) =>
+          textFields.push(textField)
+        );
+      });
+    }
+
+    const dotPositions = this.#getDotPositions(ctx, textFields);
     ctx.restore();
 
     return {
@@ -31,24 +43,38 @@ class TextFrame {
     };
   }
 
-  #drawTextFrame(ctx, text) {
+  #drawTextFrame(ctx, text, index = 0) {
     const totalTextMetrics = ctx.measureText(text);
-    this.#baseLinePos = this.#calculateBaseLinePos(totalTextMetrics);
+    const baseLinePos = this.#calculateBaseLinePos(totalTextMetrics, index);
+    this.#baseLinePos.push(baseLinePos);
 
-    ctx.fillText(text, this.#baseLinePos.x, this.#baseLinePos.y);
+    ctx.fillText(text, baseLinePos.x, baseLinePos.y);
   }
 
-  #getTextFields(ctx, text) {
+  #getTextFields(ctx, text, index = 0) {
     const textFields = [];
 
     for (let i = 0; i < text.length; i++) {
       const textMetrics = ctx.measureText(text[i]);
+      const baseLinePos = this.#baseLinePos[index];
+
       const textField = {
-        x: i === 0 ? this.#baseLinePos.x : Math.round(textFields.reduce((sum, textField) => sum + textField.width, this.#baseLinePos.x)),
-        y: Math.round(this.#baseLinePos.y - textMetrics.actualBoundingBoxAscent),
+        x:
+          i === 0
+            ? baseLinePos.x
+            : Math.round(
+                textFields.reduce(
+                  (sum, textField) => sum + textField.width,
+                  baseLinePos.x
+                )
+              ),
+        y: Math.round(baseLinePos.y - textMetrics.actualBoundingBoxAscent),
         width: Math.round(textMetrics.width),
-        height: Math.round(textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent * 1),
-      }; // prettier-ignore
+        height: Math.round(
+          textMetrics.actualBoundingBoxAscent +
+            textMetrics.actualBoundingBoxDescent * 1
+        ),
+      };
 
       textFields.push(textField);
     }
@@ -89,7 +115,7 @@ class TextFrame {
     return alpha === 0;
   }
 
-  #calculateBaseLinePos(textMetrics) {
+  #calculateBaseLinePos(textMetrics, index) {
     const calculateBaseLinePosX = () => {
       switch (this.#rootStyle.textAlign) {
         case 'end':
@@ -105,19 +131,35 @@ class TextFrame {
     };
 
     // TODO: find more case
-    const calculateBaseLinePosY = () => {
-      return Math.round(
-        (this.#stageRect.height +
+    const calculateBaseLinePosY = (index) => {
+      const baseLinePosY =
+        (this.#lineHeight +
           textMetrics.actualBoundingBoxAscent -
           textMetrics.actualBoundingBoxDescent) /
-          2
-      );
+        2;
+      return Math.round(baseLinePosY + this.#lineHeight * index);
     };
 
     return {
       x: calculateBaseLinePosX(),
-      y: calculateBaseLinePosY(),
+      y: calculateBaseLinePosY(index),
     };
+  }
+
+  get #lineHeight() {
+    if (this.#rootStyle.lineHeight !== 'normal') {
+      return parseInt(this.#rootStyle.lineHeight);
+    }
+
+    //TODO: This is an estimate and may not be accurate!
+    const height = parseInt(this.#rootStyle.fontSize) * 1.2;
+    const lineCount = Math.round(this.#stageRect.height / height);
+
+    return this.#stageRect.height / lineCount;
+  }
+
+  get #lineCount() {
+    return Math.round(this.#stageRect.height / this.#lineHeight);
   }
 }
 

@@ -21,6 +21,7 @@ class TypeFill {
   #rippleTime;
   #fontRGB;
   #rootStyle;
+  #textCount;
 
   constructor(elementId, rippleTime = 1000) {
     checkType(elementId, primitiveType.string);
@@ -51,6 +52,7 @@ class TypeFill {
       (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
     );
 
+    this.#textCount = this.#rippleList.length;
     this.#targetRippleCount = this.#rippleTime / TypeFill.FPS_TIME;
 
     this.#setFillTimer();
@@ -113,7 +115,7 @@ class TypeFill {
       this.#stageSize.height
     );
 
-    for (let i = 0; i < this.#text.length; i++) {
+    for (let i = 0; i < this.#textCount; i++) {
       const ripple = this.#rippleList[i];
       const dots = this.#textFrameMetrics.dotPositions[i];
 
