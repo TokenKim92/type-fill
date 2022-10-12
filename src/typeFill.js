@@ -22,6 +22,7 @@ class TypeFill {
   #fontRGB;
   #rootStyle;
   #textCount;
+  #isProcessing = false;
 
   constructor(elementId, rippleTime = 1000) {
     checkType(elementId, primitiveType.string);
@@ -54,8 +55,20 @@ class TypeFill {
 
     this.#textCount = this.#rippleList.length;
     this.#targetRippleCount = this.#rippleTime / TypeFill.FPS_TIME;
+  }
 
-    this.#setFillTimer();
+  start() {
+    if (!this.#isProcessing) {
+      this.#setFillTimer();
+      this.#isProcessing = true;
+    }
+  }
+
+  stop() {
+    if (this.#isProcessing) {
+      this.#stopRippleTimer();
+      this.#isProcessing = false;
+    }
   }
 
   #createRootElement(elementObj) {
