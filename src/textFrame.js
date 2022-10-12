@@ -77,18 +77,29 @@ class TextFrame {
 
   #getTextFields(ctx, text, index = 0) {
     const textFields = [];
+    const textWidthList = [];
+    const baseLinePos = this.#baseLinePos[index];
+    let character;
+    let textMetrics;
+    let textField;
 
     for (let i = 0; i < text.length; i++) {
-      const textMetrics = ctx.measureText(text[i]);
-      const baseLinePos = this.#baseLinePos[index];
+      character = text[i];
+      textMetrics = ctx.measureText(character);
 
-      const textField = {
+      if (character === ' ') {
+        textWidthList.push(textMetrics.width);
+        continue;
+      }
+
+      // TODO:: find more correcter x and width
+      textField = {
         x:
           i === 0
             ? baseLinePos.x
             : Math.round(
-                textFields.reduce(
-                  (sum, textField) => sum + textField.width,
+                textWidthList.reduce(
+                  (sum, textWidth) => sum + textWidth,
                   baseLinePos.x
                 )
               ),
@@ -100,6 +111,7 @@ class TextFrame {
         ),
       };
 
+      textWidthList.push(Math.round(textMetrics.width));
       textFields.push(textField);
     }
 
@@ -112,12 +124,13 @@ class TextFrame {
       0, 0, this.#stageRect.width, this.#stageRect.height
     ); // prettier-ignore
 
+    let alpha = 0;
     textFields.forEach((textField, index) => {
       dots.push(new Array());
 
       for (let y = textField.y; y < textField.y + textField.height; y++) {
         for (let x = textField.x; x < textField.x + textField.width; x++) {
-          const alpha = imageData.data[(x + y * this.#stageRect.width) * 4 + 3];
+          alpha = imageData.data[(x + y * this.#stageRect.width) * 4 + 3];
           alpha && dots[index].push({ x, y, alpha });
         }
       }
