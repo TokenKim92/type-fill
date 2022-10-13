@@ -111,6 +111,9 @@ class TypeFill {
     `;
 
     this.#canvasContainer = document.createElement('div');
+    this.#canvasContainer.style.top = `-${
+      backgroundSize.height + margin.top + margin.bottom
+    }px`;
 
     this.#rootElement.style.position = 'relative';
     this.#canvasContainer.style.position = 'relative';
@@ -133,13 +136,25 @@ class TypeFill {
   #resize = () => {
     const backgroundSize = this.#getClientSize(this.#elementObj);
     const isResized = backgroundSize.height === this.#backgroundCanvas.height;
+    const gap = backgroundSize.width - this.#backgroundCanvas.width;
 
     this.#resetBackground(backgroundSize);
     if (isResized) {
+      const adjustedGap =
+        this.#rootStyle.textAlign === 'center' ? gap / 2 : gap;
+
+      if (this.#rootStyle.textAlign === 'end' || this.#rootStyle.textAlign === 'center') {
+        const prevLeft = parseInt(this.#canvas.style.left);
+        this.#canvas.style.left = `${prevLeft + adjustedGap}px`;
+      } // prettier-ignore
+
       return;
     }
 
     const padding = parseIntForPadding(this.#rootStyle.padding);
+    const margin = parseIntForMargin(this.#rootStyle.margin);
+
+    this.#canvas.style.left = `${padding.left + margin.left}px`;
     this.#stageSize = this.#getClientSize(
       this.#elementObj,
       padding.left + padding.right,
@@ -185,7 +200,6 @@ class TypeFill {
     elementObj.parentElement.append(this.#rootElement);
     this.#rootElement.append(elementObj);
 
-    elementObj.style.position = 'absolute';
     elementObj.style.opacity = 0;
   };
 
