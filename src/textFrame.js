@@ -14,12 +14,8 @@ class TextFrame {
     this.#baseLinePos = [];
     this.#ctx.save();
 
-    const fillStyle = this.#isTransparentBackground
-      ? 'rgb(255, 255, 255)'
-      : this.#rootStyle.backgroundColor;
-
     this.#ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
-    this.#ctx.fillStyle = fillStyle;
+    this.#ctx.fillStyle = 'rgb(255, 255, 255)';
     this.#ctx.textBaseline = 'middle';
 
     const textFields = [];
@@ -39,6 +35,7 @@ class TextFrame {
     }
 
     const dotPositions = this.#getDotPositions(stageRect, textFields);
+    this.#ctx.clearRect(0, 0, stageRect.width, stageRect.height);
     this.#ctx.restore();
 
     return {
@@ -150,19 +147,6 @@ class TextFrame {
 
     return dots;
   };
-
-  get #isTransparentBackground() {
-    const rgbaText = this.#rootStyle.backgroundColor;
-    const openBracketIndex = rgbaText.indexOf('(');
-    const closeBracketIndex = rgbaText.indexOf(')');
-    const alpha = rgbaText
-      .substring(openBracketIndex + 1, closeBracketIndex)
-      .split(', ')
-      .map((colorValue) => parseInt(colorValue))
-      .at(3);
-
-    return alpha === 0;
-  }
 
   #calculateBaseLinePos = (stageRect, textMetrics, index) => {
     const calculateBaseLinePosX = () => {
