@@ -56,21 +56,21 @@ class TypeFill {
     window.addEventListener('resize', this.#resize);
   }
 
-  start() {
+  start = () => {
     if (!this.#isProcessing) {
       this.#setFillTimer();
       this.#isProcessing = true;
     }
-  }
+  };
 
-  stop() {
+  stop = () => {
     if (this.#isProcessing) {
       this.#stopRippleTimer();
       this.#isProcessing = false;
     }
-  }
+  };
 
-  restart() {
+  restart = () => {
     if (this.#isProcessing) {
       this.#stopRippleTimer();
     }
@@ -79,9 +79,9 @@ class TypeFill {
     this.#rippleList.forEach((ripple) => ripple.reset());
     this.#setFillTimer();
     this.#isProcessing = true;
-  }
+  };
 
-  #createCanvases() {
+  #createCanvases = () => {
     const margin = parseIntForMargin(this.#rootStyle.margin);
     const backgroundSize = this.#getClientSize(this.#elementObj);
 
@@ -128,7 +128,7 @@ class TypeFill {
       this.#backgroundCanvas.width,
       this.#backgroundCanvas.height
     );
-  }
+  };
 
   #resize = () => {
     const backgroundSize = this.#getClientSize(this.#elementObj);
@@ -152,7 +152,7 @@ class TypeFill {
     this.restart();
   };
 
-  #resetBackground(backgroundSize) {
+  #resetBackground = (backgroundSize) => {
     this.#backgroundCtx.clearRect(
       0,
       0,
@@ -170,26 +170,26 @@ class TypeFill {
       this.#backgroundCanvas.width,
       this.#backgroundCanvas.height
     );
-  }
+  };
 
-  #initFrameMetricsAndRipple() {
+  #initFrameMetricsAndRipple = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
     this.#rippleList = this.#textFrameMetrics.textFields.map(
       (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
     );
     this.#textCount = this.#rippleList.length;
-  }
+  };
 
-  #createRootElement(elementObj) {
+  #createRootElement = (elementObj) => {
     this.#rootElement = document.createElement('div');
     elementObj.parentElement.append(this.#rootElement);
     this.#rootElement.append(elementObj);
 
     elementObj.style.position = 'absolute';
     elementObj.style.opacity = 0;
-  }
+  };
 
-  #setFillTimer() {
+  #setFillTimer = () => {
     const intervalId = setInterval(() => {
       if (this.#curRippleCount > this.#targetRippleCount) {
         this.#stopRippleTimer();
@@ -201,9 +201,9 @@ class TypeFill {
     }, TypeFill.FPS_TIME);
 
     this.#stopRippleTimer = () => clearInterval(intervalId);
-  }
+  };
 
-  #fillText() {
+  #fillText = () => {
     const imageData = this.#ctx.getImageData(
       0,
       0,
@@ -230,9 +230,9 @@ class TypeFill {
         });
     }
     this.#ctx.putImageData(imageData, 0, 0);
-  }
+  };
 
-  #getClientSize(elementObj, paddingWidth = 0, paddingHeight = 0) {
+  #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
     return {
       width: Math.round(
         this.#elementObj.getBoundingClientRect().width - paddingWidth
@@ -241,7 +241,7 @@ class TypeFill {
         this.#elementObj.getBoundingClientRect().height - paddingHeight
       ),
     };
-  }
+  };
 }
 
 export default TypeFill;

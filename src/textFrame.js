@@ -10,7 +10,7 @@ class TextFrame {
     this.#text = text;
   }
 
-  getMetrics(stageRect) {
+  getMetrics = (stageRect) => {
     this.#baseLinePos = [];
     this.#ctx.save();
 
@@ -45,9 +45,9 @@ class TextFrame {
       textFields,
       dotPositions,
     };
-  }
+  };
 
-  #getTextList(stageRect) {
+  #getTextList = (stageRect) => {
     const textList = this.#text.split(' ');
     const newTextList = [];
     let lineText = '';
@@ -70,9 +70,9 @@ class TextFrame {
     });
 
     return newTextList;
-  }
+  };
 
-  #drawTextFrame(stageRect, text, index = 0) {
+  #drawTextFrame = (stageRect, text, index = 0) => {
     const totalTextMetrics = this.#ctx.measureText(text);
     const baseLinePos = this.#calculateBaseLinePos(
       stageRect,
@@ -82,9 +82,9 @@ class TextFrame {
     this.#baseLinePos.push(baseLinePos);
 
     this.#ctx.fillText(text, baseLinePos.x, baseLinePos.y);
-  }
+  };
 
-  #getTextFields(text, index = 0) {
+  #getTextFields = (text, index = 0) => {
     const textFields = [];
     const textWidthList = [];
     const baseLinePos = this.#baseLinePos[index];
@@ -125,9 +125,9 @@ class TextFrame {
     }
 
     return textFields;
-  }
+  };
 
-  #getDotPositions(stageRect, textFields) {
+  #getDotPositions = (stageRect, textFields) => {
     const dots = [];
     const imageData = this.#ctx.getImageData(
       0, 0, stageRect.width, stageRect.height
@@ -146,7 +146,7 @@ class TextFrame {
     });
 
     return dots;
-  }
+  };
 
   get #isTransparentBackground() {
     const rgbaText = this.#rootStyle.backgroundColor;
@@ -161,7 +161,7 @@ class TextFrame {
     return alpha === 0;
   }
 
-  #calculateBaseLinePos(stageRect, textMetrics, index) {
+  #calculateBaseLinePos = (stageRect, textMetrics, index) => {
     const calculateBaseLinePosX = () => {
       switch (this.#rootStyle.textAlign) {
         case 'end':
@@ -191,9 +191,9 @@ class TextFrame {
       x: calculateBaseLinePosX(),
       y: calculateBaseLinePosY(index),
     };
-  }
+  };
 
-  #calculateLineHeight(stageRect) {
+  #calculateLineHeight = (stageRect) => {
     if (this.#rootStyle.lineHeight !== 'normal') {
       return parseInt(this.#rootStyle.lineHeight);
     }
@@ -203,11 +203,11 @@ class TextFrame {
     const lineCount = Math.round(stageRect.height / height);
 
     return stageRect.height / lineCount;
-  }
+  };
 
-  #calculateLineCount(stageRect) {
+  #calculateLineCount = (stageRect) => {
     return Math.round(stageRect.height / this.#calculateLineHeight(stageRect));
-  }
+  };
 }
 
 export default TextFrame;

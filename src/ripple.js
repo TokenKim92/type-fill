@@ -17,26 +17,26 @@ class Ripple {
     this.#speed = this.#calculateSpeed(this.#targetRadius, fpsTime);
   }
 
-  reset() {
+  reset = () => {
     this.#curRadius = 0;
-  }
+  };
 
-  #getMaxDistance(pos, rect) {
+  #getMaxDistance = (pos, rect) => {
     const fromLeftTop = distance(rect.x, rect.y, pos.x, pos.y);
     const fromRightTop = distance(rect.x + rect.width - 1, rect.y, pos.x, pos.y); // prettier-ignore
     const fromLeftBottom = distance(rect.x, rect.y + rect.height - 1, pos.x, pos.y); // prettier-ignore
     const fromRightBottom = distance(rect.x + rect.width - 1, rect.y +  rect.height - 1, pos.x, pos.y); // prettier-ignore
 
     return Math.max(fromLeftTop, fromRightTop, fromLeftBottom, fromRightBottom);
-  }
+  };
 
-  #calculateSpeed(targetRadius, fpsTime) {
+  #calculateSpeed = (targetRadius, fpsTime) => {
     return (targetRadius / this.#targetTime) * fpsTime;
-  }
+  };
 
-  update() {
+  update = () => {
     this.#curRadius <= this.#targetRadius && (this.#curRadius += this.#speed);
-  }
+  };
 
   get Metrics() {
     return {
