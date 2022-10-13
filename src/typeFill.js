@@ -11,14 +11,16 @@ class TypeFill {
   #backgroundCanvas;
   #backgroundCtx;
   #rootElement;
+  #elementObj;
   #text;
   #rippleList = [];
   #stopRippleTimer;
-  #targetRippleCount;
-  #curRippleCount = 0;
+  #textFrame;
   #textFrameMetrics;
   #stageSize;
   #rippleTime;
+  #targetRippleCount;
+  #curRippleCount = 0;
   #fontRGB;
   #rootStyle;
   #textCount;
@@ -28,33 +30,26 @@ class TypeFill {
     checkType(elementId, primitiveType.string);
     checkType(rippleTime, primitiveType.number);
 
-    const elementObj = document.querySelector(`#${elementId}`);
-    if (!elementObj) {
+    this.#elementObj = document.querySelector(`#${elementId}`);
+    if (!this.#elementObj) {
       throw new Error("This element id doesn't exit.");
     }
     this.#rippleTime = rippleTime;
+    this.#targetRippleCount = rippleTime / TypeFill.FPS_TIME;
     this.#stageSize = {
-      width: Math.round(elementObj.getBoundingClientRect().width),
-      height: Math.round(elementObj.getBoundingClientRect().height),
+      width: Math.round(this.#elementObj.getBoundingClientRect().width),
+      height: Math.round(this.#elementObj.getBoundingClientRect().height),
     };
-    this.#text = elementObj.innerText;
-    this.#rootStyle = window.getComputedStyle(elementObj);
+    this.#text = this.#elementObj.innerText;
+    this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
 
-    this.#createRootElement(elementObj);
+    this.#createRootElement(this.#elementObj);
     this.#createCanvases();
+    this.#textFrame = new TextFrame(this.#ctx, this.#rootStyle, this.#text);
+    this.#initFrameMetricsAndRipple();
 
-    this.#textFrameMetrics = new TextFrame(
-      this.#rootStyle,
-      this.#stageSize
-    ).getMetrics(this.#ctx, this.#text);
-
-    this.#rippleList = this.#textFrameMetrics.textFields.map(
-      (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
-    );
-
-    this.#textCount = this.#rippleList.length;
-    this.#targetRippleCount = this.#rippleTime / TypeFill.FPS_TIME;
+    window.addEventListener('resize', this.#resize);
   }
 
   start() {
@@ -71,12 +66,15 @@ class TypeFill {
     }
   }
 
-  #createRootElement(elementObj) {
-    this.#rootElement = document.createElement('div');
-    elementObj.parentElement.append(this.#rootElement);
-    this.#rootElement.append(elementObj);
+  restart() {
+    if (this.#isProcessing) {
+      this.#stopRippleTimer();
+    }
 
-    elementObj.style.display = 'none';
+    this.#curRippleCount = 0;
+    this.#rippleList.forEach((ripple) => ripple.reset());
+    this.#setFillTimer();
+    this.#isProcessing = true;
   }
 
   #createCanvases() {
@@ -104,6 +102,63 @@ class TypeFill {
       this.#stageSize.width,
       this.#stageSize.height
     );
+  }
+
+  #resize = () => {
+    const curWidth = Math.round(this.#elementObj.getBoundingClientRect().width);
+    const curHeight = Math.round(this.#elementObj.getBoundingClientRect().height); // prettier-ignore
+
+    this.#resetBackground(curWidth, curHeight);
+    if (curHeight === this.#stageSize.height) {
+      return;
+    }
+
+    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#stageSize.width = curWidth;
+    this.#stageSize.height = curHeight;
+
+    this.#canvas.width = curWidth;
+    this.#canvas.height = curHeight;
+
+    this.#initFrameMetricsAndRipple();
+    this.restart();
+  };
+
+  #resetBackground(width, height) {
+    this.#backgroundCtx.clearRect(
+      0,
+      0,
+      this.#backgroundCanvas.width,
+      this.#backgroundCanvas.height
+    );
+
+    this.#backgroundCanvas.width = width;
+    this.#backgroundCanvas.height = height;
+
+    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
+    this.#backgroundCtx.fillRect(
+      0,
+      0,
+      this.#backgroundCanvas.width,
+      this.#backgroundCanvas.height
+    );
+  }
+
+  #initFrameMetricsAndRipple() {
+    this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
+    this.#rippleList = this.#textFrameMetrics.textFields.map(
+      (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
+    );
+    this.#textCount = this.#rippleList.length;
+  }
+
+  #createRootElement(elementObj) {
+    this.#rootElement = document.createElement('div');
+    elementObj.parentElement.append(this.#rootElement);
+    this.#rootElement.append(elementObj);
+
+    elementObj.style.position = 'absolute';
+    elementObj.style.opacity = 0;
   }
 
   #setFillTimer() {

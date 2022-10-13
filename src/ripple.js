@@ -17,6 +17,10 @@ class Ripple {
     this.#speed = this.#calculateSpeed(this.#targetRadius, fpsTime);
   }
 
+  reset() {
+    this.#curRadius = 0;
+  }
+
   #getMaxDistance(pos, rect) {
     const fromLeftTop = distance(rect.x, rect.y, pos.x, pos.y);
     const fromRightTop = distance(rect.x + rect.width - 1, rect.y, pos.x, pos.y); // prettier-ignore
