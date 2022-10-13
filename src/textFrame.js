@@ -113,7 +113,10 @@ class TextFrame {
                 )
               ),
         y: Math.round(baseLinePos.y - textMetrics.actualBoundingBoxAscent),
-        width: Math.round(textMetrics.width),
+        width: Math.round(
+          Math.abs(textMetrics.actualBoundingBoxLeft) +
+            textMetrics.actualBoundingBoxRight
+        ),
         height: Math.round(
           textMetrics.actualBoundingBoxAscent +
             textMetrics.actualBoundingBoxDescent * 1
