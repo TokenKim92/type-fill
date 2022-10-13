@@ -1,40 +1,45 @@
 class TextFrame {
+  #ctx;
   #rootStyle;
-  #stageRect;
-  #baseLinePos = [];
+  #text;
+  #baseLinePos;
 
-  constructor(rootStyle, stageRect) {
+  constructor(ctx, rootStyle, text) {
+    this.#ctx = ctx;
     this.#rootStyle = rootStyle;
-    this.#stageRect = stageRect;
+    this.#text = text;
   }
 
-  getMetrics(ctx, text) {
-    ctx.save();
+  getMetrics(stageRect) {
+    this.#baseLinePos = [];
+    this.#ctx.save();
 
     const fillStyle = this.#isTransparentBackground
       ? 'rgb(255, 255, 255)'
       : this.#rootStyle.backgroundColor;
 
-    ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
-    ctx.fillStyle = fillStyle;
-    ctx.textBaseline = 'middle';
+    this.#ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
+    this.#ctx.fillStyle = fillStyle;
+    this.#ctx.textBaseline = 'middle';
 
-    let textFields = [];
-    if (this.#lineCount === 1) {
-      this.#drawTextFrame(ctx, text);
-      textFields = this.#getTextFields(ctx, text);
+    const textFields = [];
+    if (this.#calculateLineCount(stageRect) === 1) {
+      this.#drawTextFrame(stageRect, this.#text);
+      this.#getTextFields(this.#text).forEach((textField) =>
+        textFields.push(textField)
+      );
     } else {
-      const textList = this.#getTextList(ctx, text);
-      textList.forEach((text, index) => {
-        this.#drawTextFrame(ctx, text, index);
-        this.#getTextFields(ctx, text, index).forEach((textField) =>
+      const textList = this.#getTextList(stageRect);
+      textList.forEach((lineText, index) => {
+        this.#drawTextFrame(stageRect, lineText, index);
+        this.#getTextFields(lineText, index).forEach((textField) =>
           textFields.push(textField)
         );
       });
     }
 
-    const dotPositions = this.#getDotPositions(ctx, textFields);
-    ctx.restore();
+    const dotPositions = this.#getDotPositions(stageRect, textFields);
+    this.#ctx.restore();
 
     return {
       textFields,
@@ -42,8 +47,8 @@ class TextFrame {
     };
   }
 
-  #getTextList(ctx, text) {
-    const textList = text.split(' ');
+  #getTextList(stageRect) {
+    const textList = this.#text.split(' ');
     const newTextList = [];
     let lineText = '';
     let isOutOfStage = false;
@@ -51,7 +56,7 @@ class TextFrame {
 
     textList.forEach((text, index) => {
       isOutOfStage =
-        ctx.measureText(lineText + text).width > this.#stageRect.width;
+        this.#ctx.measureText(lineText + text).width > stageRect.width;
       isLastText = index === textList.length - 1;
 
       if (isOutOfStage) {
@@ -67,15 +72,19 @@ class TextFrame {
     return newTextList;
   }
 
-  #drawTextFrame(ctx, text, index = 0) {
-    const totalTextMetrics = ctx.measureText(text);
-    const baseLinePos = this.#calculateBaseLinePos(totalTextMetrics, index);
+  #drawTextFrame(stageRect, text, index = 0) {
+    const totalTextMetrics = this.#ctx.measureText(text);
+    const baseLinePos = this.#calculateBaseLinePos(
+      stageRect,
+      totalTextMetrics,
+      index
+    );
     this.#baseLinePos.push(baseLinePos);
 
-    ctx.fillText(text, baseLinePos.x, baseLinePos.y);
+    this.#ctx.fillText(text, baseLinePos.x, baseLinePos.y);
   }
 
-  #getTextFields(ctx, text, index = 0) {
+  #getTextFields(text, index = 0) {
     const textFields = [];
     const textWidthList = [];
     const baseLinePos = this.#baseLinePos[index];
@@ -85,7 +94,7 @@ class TextFrame {
 
     for (let i = 0; i < text.length; i++) {
       character = text[i];
-      textMetrics = ctx.measureText(character);
+      textMetrics = this.#ctx.measureText(character);
 
       if (character === ' ') {
         textWidthList.push(textMetrics.width);
@@ -118,10 +127,10 @@ class TextFrame {
     return textFields;
   }
 
-  #getDotPositions(ctx, textFields) {
+  #getDotPositions(stageRect, textFields) {
     const dots = [];
-    const imageData = ctx.getImageData(
-      0, 0, this.#stageRect.width, this.#stageRect.height
+    const imageData = this.#ctx.getImageData(
+      0, 0, stageRect.width, stageRect.height
     ); // prettier-ignore
 
     let alpha = 0;
@@ -130,7 +139,7 @@ class TextFrame {
 
       for (let y = textField.y; y < textField.y + textField.height; y++) {
         for (let x = textField.x; x < textField.x + textField.width; x++) {
-          alpha = imageData.data[(x + y * this.#stageRect.width) * 4 + 3];
+          alpha = imageData.data[(x + y * stageRect.width) * 4 + 3];
           alpha && dots[index].push({ x, y, alpha });
         }
       }
@@ -152,13 +161,13 @@ class TextFrame {
     return alpha === 0;
   }
 
-  #calculateBaseLinePos(textMetrics, index) {
+  #calculateBaseLinePos(stageRect, textMetrics, index) {
     const calculateBaseLinePosX = () => {
       switch (this.#rootStyle.textAlign) {
         case 'end':
-          return Math.round(this.#stageRect.width - textMetrics.width);
+          return Math.round(stageRect.width - textMetrics.width);
         case 'center':
-          return Math.round((this.#stageRect.width - textMetrics.width) / 2);
+          return Math.round((stageRect.width - textMetrics.width) / 2);
         case 'justify':
           console.error("'justify' option doesn't work.");
         case 'start':
@@ -169,12 +178,13 @@ class TextFrame {
 
     // TODO: find more case
     const calculateBaseLinePosY = (index) => {
+      const lineHeight = this.#calculateLineHeight(stageRect);
       const baseLinePosY =
-        (this.#lineHeight +
+        (lineHeight +
           textMetrics.actualBoundingBoxAscent -
           textMetrics.actualBoundingBoxDescent) /
         2;
-      return Math.round(baseLinePosY + this.#lineHeight * index);
+      return Math.round(baseLinePosY + lineHeight * index);
     };
 
     return {
@@ -183,20 +193,20 @@ class TextFrame {
     };
   }
 
-  get #lineHeight() {
+  #calculateLineHeight(stageRect) {
     if (this.#rootStyle.lineHeight !== 'normal') {
       return parseInt(this.#rootStyle.lineHeight);
     }
 
     //TODO: This is an estimate and may not be accurate!
     const height = parseInt(this.#rootStyle.fontSize) * 1.2;
-    const lineCount = Math.round(this.#stageRect.height / height);
+    const lineCount = Math.round(stageRect.height / height);
 
-    return this.#stageRect.height / lineCount;
+    return stageRect.height / lineCount;
   }
 
-  get #lineCount() {
-    return Math.round(this.#stageRect.height / this.#lineHeight);
+  #calculateLineCount(stageRect) {
+    return Math.round(stageRect.height / this.#calculateLineHeight(stageRect));
   }
 }
 
