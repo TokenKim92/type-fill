@@ -6,6 +6,7 @@ import {
   primitiveType,
   colorToRGB,
   parseIntForPadding,
+  parseIntForMargin,
 } from './utils.js';
 
 class TypeFill {
@@ -81,12 +82,17 @@ class TypeFill {
   }
 
   #createCanvases() {
+    const margin = parseIntForMargin(this.#rootStyle.margin);
     const backgroundSize = this.#getClientSize(this.#elementObj);
 
     this.#backgroundCanvas = document.createElement('canvas');
     this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
     this.#backgroundCanvas.width = backgroundSize.width;
     this.#backgroundCanvas.height = backgroundSize.height;
+    this.#backgroundCanvas.style.cssText = `
+      left: ${margin.left}px;
+      top: ${margin.top}px;
+    `;
 
     const padding = parseIntForPadding(this.#rootStyle.padding);
     this.#stageSize = this.#getClientSize(
@@ -99,10 +105,9 @@ class TypeFill {
     this.#ctx = this.#canvas.getContext('2d');
     this.#canvas.width = this.#stageSize.width;
     this.#canvas.height = this.#stageSize.height;
-
     this.#canvas.style.cssText = `
-      left: ${padding.left}px;
-      top: ${padding.top}px;
+      left: ${padding.left + margin.left}px;
+      top: ${padding.top + margin.top}px;
     `;
 
     this.#canvasContainer = document.createElement('div');
