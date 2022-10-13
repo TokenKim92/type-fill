@@ -1,6 +1,12 @@
 import Ripple from './ripple.js';
 import TextFrame from './textFrame.js';
-import { checkType, collide, primitiveType, colorToRGB } from './utils.js';
+import {
+  checkType,
+  collide,
+  primitiveType,
+  colorToRGB,
+  parseIntForPadding,
+} from './utils.js';
 
 class TypeFill {
   static FPS = 60;
@@ -25,6 +31,7 @@ class TypeFill {
   #rootStyle;
   #textCount;
   #isProcessing = false;
+  #canvasContainer;
 
   constructor(elementId, rippleTime = 1000) {
     checkType(elementId, primitiveType.string);
@@ -36,10 +43,6 @@ class TypeFill {
     }
     this.#rippleTime = rippleTime;
     this.#targetRippleCount = rippleTime / TypeFill.FPS_TIME;
-    this.#stageSize = {
-      width: Math.round(this.#elementObj.getBoundingClientRect().width),
-      height: Math.round(this.#elementObj.getBoundingClientRect().height),
-    };
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
@@ -78,53 +81,73 @@ class TypeFill {
   }
 
   #createCanvases() {
+    const backgroundSize = this.#getClientSize(this.#elementObj);
+
+    this.#backgroundCanvas = document.createElement('canvas');
+    this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
+    this.#backgroundCanvas.width = backgroundSize.width;
+    this.#backgroundCanvas.height = backgroundSize.height;
+
+    const padding = parseIntForPadding(this.#rootStyle.padding);
+    this.#stageSize = this.#getClientSize(
+      this.#elementObj,
+      padding.left + padding.right,
+      padding.top + padding.bottom
+    );
+
     this.#canvas = document.createElement('canvas');
     this.#ctx = this.#canvas.getContext('2d');
     this.#canvas.width = this.#stageSize.width;
     this.#canvas.height = this.#stageSize.height;
 
-    this.#backgroundCanvas = document.createElement('canvas');
-    this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
-    this.#backgroundCanvas.width = this.#stageSize.width;
-    this.#backgroundCanvas.height = this.#stageSize.height;
+    this.#canvas.style.cssText = `
+      left: ${padding.left}px;
+      top: ${padding.top}px;
+    `;
+
+    this.#canvasContainer = document.createElement('div');
 
     this.#rootElement.style.position = 'relative';
+    this.#canvasContainer.style.position = 'relative';
     this.#canvas.style.position = 'absolute';
     this.#backgroundCanvas.style.position = 'absolute';
 
-    this.#rootElement.append(this.#backgroundCanvas);
-    this.#rootElement.append(this.#canvas);
+    this.#canvasContainer.append(this.#backgroundCanvas);
+    this.#canvasContainer.append(this.#canvas);
+    this.#rootElement.append(this.#canvasContainer);
 
     this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCtx.fillRect(
       0,
       0,
-      this.#stageSize.width,
-      this.#stageSize.height
+      this.#backgroundCanvas.width,
+      this.#backgroundCanvas.height
     );
   }
 
   #resize = () => {
-    const curWidth = Math.round(this.#elementObj.getBoundingClientRect().width);
-    const curHeight = Math.round(this.#elementObj.getBoundingClientRect().height); // prettier-ignore
+    const backgroundSize = this.#getClientSize(this.#elementObj);
+    const isResized = backgroundSize.height === this.#backgroundCanvas.height;
 
-    this.#resetBackground(curWidth, curHeight);
-    if (curHeight === this.#stageSize.height) {
+    this.#resetBackground(backgroundSize);
+    if (isResized) {
       return;
     }
 
-    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-    this.#stageSize.width = curWidth;
-    this.#stageSize.height = curHeight;
-
-    this.#canvas.width = curWidth;
-    this.#canvas.height = curHeight;
+    const padding = parseIntForPadding(this.#rootStyle.padding);
+    this.#stageSize = this.#getClientSize(
+      this.#elementObj,
+      padding.left + padding.right,
+      padding.top + padding.bottom
+    );
+    this.#canvas.width = this.#stageSize.width;
+    this.#canvas.height = this.#stageSize.height;
 
     this.#initFrameMetricsAndRipple();
     this.restart();
   };
 
-  #resetBackground(width, height) {
+  #resetBackground(backgroundSize) {
     this.#backgroundCtx.clearRect(
       0,
       0,
@@ -132,8 +155,8 @@ class TypeFill {
       this.#backgroundCanvas.height
     );
 
-    this.#backgroundCanvas.width = width;
-    this.#backgroundCanvas.height = height;
+    this.#backgroundCanvas.width = backgroundSize.width;
+    this.#backgroundCanvas.height = backgroundSize.height;
 
     this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCtx.fillRect(
@@ -202,6 +225,17 @@ class TypeFill {
         });
     }
     this.#ctx.putImageData(imageData, 0, 0);
+  }
+
+  #getClientSize(elementObj, paddingWidth = 0, paddingHeight = 0) {
+    return {
+      width: Math.round(
+        this.#elementObj.getBoundingClientRect().width - paddingWidth
+      ),
+      height: Math.round(
+        this.#elementObj.getBoundingClientRect().height - paddingHeight
+      ),
+    };
   }
 }
 

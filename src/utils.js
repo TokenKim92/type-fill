@@ -82,3 +82,46 @@ const parseIntForRGB = (rgbText) => {
 
   throw new Error(errorMsgForRGB);
 };
+
+const parseIntForStyle = (style) => {
+  const styleList = style.split(' ').map((styleItem) => parseInt(styleItem));
+
+  switch (styleList.length) {
+    case 1:
+      return {
+        top: styleList[0],
+        right: styleList[0],
+        bottom: styleList[0],
+        left: styleList[0],
+      };
+    case 2:
+      return {
+        top: styleList[0],
+        right: styleList[1],
+        bottom: styleList[0],
+        left: styleList[1],
+      };
+    case 3:
+      return {
+        top: styleList[0],
+        right: styleList[1],
+        bottom: styleList[2],
+        left: 0,
+      };
+    case 4:
+      return {
+        top: styleList[0],
+        right: styleList[1],
+        bottom: styleList[2],
+        left: styleList[3],
+      };
+  }
+};
+
+export const parseIntForPadding = (stylePadding) => {
+  return parseIntForStyle(stylePadding);
+};
+
+export const parseIntForMargin = (styleMargin) => {
+  return parseIntForStyle(styleMargin);
+};
