@@ -197,7 +197,7 @@ class TypeFill {
 
   #createRootElement = (elementObj) => {
     this.#rootElement = document.createElement('div');
-    elementObj.parentElement.append(this.#rootElement);
+    elementObj.parentElement.insertBefore(this.#rootElement, elementObj);
     this.#rootElement.append(elementObj);
 
     elementObj.style.opacity = 0;
