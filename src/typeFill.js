@@ -108,7 +108,6 @@ class TypeFill {
 
     this.#backgroundCanvas = document.createElement('canvas');
     this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
-    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCanvas.style.cssText = `
     left: ${margin.left}px;
     top: ${margin.top}px;
@@ -117,7 +116,7 @@ class TypeFill {
 
     this.#canvas = document.createElement('canvas');
     this.#ctx = this.#canvas.getContext('2d', { willReadFrequently: true });
-    this.#canvas.style.top = `${padding.left + margin.left}px`;
+    this.#canvas.style.top = `${padding.top + margin.top}px`;
     this.#resetStage(padding, margin);
 
     this.#canvasContainer = document.createElement('div');
@@ -194,6 +193,7 @@ class TypeFill {
     this.#backgroundCanvas.width = backgroundSize.width;
     this.#backgroundCanvas.height = backgroundSize.height;
 
+    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCtx.fillRect(
       0,
       0,
