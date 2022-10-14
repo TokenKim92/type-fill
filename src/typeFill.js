@@ -25,7 +25,7 @@ class TypeFill {
   #textFrame;
   #textFrameMetrics;
   #stageSize;
-  #rippleTime;
+  #fillTime;
   #targetRippleCount;
   #curRippleCount = 0;
   #fontRGB;
@@ -35,16 +35,20 @@ class TypeFill {
   #canvasContainer;
   #imageData;
 
-  constructor(elementId, rippleTime = 1000) {
+  constructor(elementId, fillTime = 1000) {
     checkType(elementId, primitiveType.string);
-    checkType(rippleTime, primitiveType.number);
+    checkType(fillTime, primitiveType.number);
 
     this.#elementObj = document.querySelector(`#${elementId}`);
     if (!this.#elementObj) {
       throw new Error("This element id doesn't exit.");
     }
-    this.#rippleTime = rippleTime;
-    this.#targetRippleCount = rippleTime / TypeFill.FPS_TIME;
+    if (fillTime <= 0) {
+      throw new Error("'fillTime' should be greater then 0.");
+    }
+
+    this.#fillTime = fillTime;
+    this.#targetRippleCount = fillTime / TypeFill.FPS_TIME;
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
@@ -109,9 +113,9 @@ class TypeFill {
     this.#backgroundCanvas = document.createElement('canvas');
     this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
     this.#backgroundCanvas.style.cssText = `
-    left: ${margin.left}px;
-    top: ${margin.top}px;
-  `;
+      left: ${margin.left}px;
+      top: ${margin.top}px;
+    `;
     this.#resetBackground(backgroundSize);
 
     this.#canvas = document.createElement('canvas');
@@ -205,7 +209,7 @@ class TypeFill {
   #initFrameMetricsAndRipple = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
     this.#rippleList = this.#textFrameMetrics.textFields.map(
-      (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
+      (textField) => new Ripple(this.#fillTime, TypeFill.FPS_TIME, textField)
     );
     this.#textCount = this.#rippleList.length;
   };
