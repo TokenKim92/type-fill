@@ -33,6 +33,7 @@ class TypeFill {
   #textCount;
   #isProcessing = false;
   #canvasContainer;
+  #imageData;
 
   constructor(elementId, rippleTime = 1000) {
     checkType(elementId, primitiveType.string);
@@ -107,7 +108,7 @@ class TypeFill {
     );
 
     this.#canvas = document.createElement('canvas');
-    this.#ctx = this.#canvas.getContext('2d');
+    this.#ctx = this.#canvas.getContext('2d', { willReadFrequently: true });
     this.#canvas.width = this.#stageSize.width;
     this.#canvas.height = this.#stageSize.height;
     this.#canvas.style.cssText = `
@@ -135,6 +136,13 @@ class TypeFill {
       0,
       this.#backgroundCanvas.width,
       this.#backgroundCanvas.height
+    );
+
+    this.#imageData = this.#ctx.getImageData(
+      0,
+      0,
+      this.#stageSize.width,
+      this.#stageSize.height
     );
   };
 
@@ -167,6 +175,16 @@ class TypeFill {
     );
     this.#canvas.width = this.#stageSize.width;
     this.#canvas.height = this.#stageSize.height;
+    this.#imageData = this.#ctx.getImageData(
+      0,
+      0,
+      this.#stageSize.width,
+      this.#stageSize.height
+    );
+
+    this.#canvasContainer.style.top = `-${
+      backgroundSize.height + margin.top + margin.bottom
+    }px`;
 
     this.#initFrameMetricsAndRipple();
     this.restart();
@@ -223,13 +241,6 @@ class TypeFill {
   };
 
   #fillText = () => {
-    const imageData = this.#ctx.getImageData(
-      0,
-      0,
-      this.#stageSize.width,
-      this.#stageSize.height
-    );
-
     for (let i = 0; i < this.#textCount; i++) {
       const ripple = this.#rippleList[i];
       const dots = this.#textFrameMetrics.dotPositions[i];
@@ -242,13 +253,13 @@ class TypeFill {
         .forEach((dot) => {
           const index = dot.x + dot.y * this.#stageSize.width;
 
-          imageData.data[index * 4] = this.#fontRGB.r;
-          imageData.data[index * 4 + 1] = this.#fontRGB.g;
-          imageData.data[index * 4 + 2] = this.#fontRGB.b;
-          imageData.data[index * 4 + 3] = dot.alpha;
+          this.#imageData.data[index * 4] = this.#fontRGB.r;
+          this.#imageData.data[index * 4 + 1] = this.#fontRGB.g;
+          this.#imageData.data[index * 4 + 2] = this.#fontRGB.b;
+          this.#imageData.data[index * 4 + 3] = dot.alpha;
         });
     }
-    this.#ctx.putImageData(imageData, 0, 0);
+    this.#ctx.putImageData(this.#imageData, 0, 0);
   };
 
   #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
