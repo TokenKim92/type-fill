@@ -50,7 +50,12 @@ class TypeFill {
 
     this.#createRootElement(this.#elementObj);
     this.#createCanvases();
-    this.#textFrame = new TextFrame(this.#ctx, this.#rootStyle, this.#text);
+    this.#textFrame = new TextFrame(
+      this.#ctx,
+      this.#rootStyle,
+      this.#text,
+      this.#fontRGB.a
+    );
     this.#initFrameMetricsAndRipple();
 
     window.addEventListener('resize', this.#resize);

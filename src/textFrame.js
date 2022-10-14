@@ -2,12 +2,14 @@ class TextFrame {
   #ctx;
   #rootStyle;
   #text;
+  #alphaValue;
   #baseLinePos;
 
-  constructor(ctx, rootStyle, text) {
+  constructor(ctx, rootStyle, text, alphaValue) {
     this.#ctx = ctx;
     this.#rootStyle = rootStyle;
     this.#text = text;
+    this.#alphaValue = alphaValue;
   }
 
   getMetrics = (stageRect) => {
@@ -15,7 +17,7 @@ class TextFrame {
     this.#ctx.save();
 
     this.#ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
-    this.#ctx.fillStyle = 'rgb(255, 255, 255)';
+    this.#ctx.fillStyle = `rgba(255, 255, 255, ${this.#alphaValue})`;
     this.#ctx.textBaseline = 'middle';
 
     const textFields = [];

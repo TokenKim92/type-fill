@@ -47,10 +47,10 @@ export const colorToRGB = (rgbText) => {
   }
 
   const rgbValues = parseIntForRGB(rgbText.toLowerCase());
-
-  if (rgbValues.length !== 3 || rgbValues.includes(NaN)) {
+  if ((rgbValues.length !== 3 && rgbValues.length !== 4) || rgbValues.includes(NaN)) {
     throw new Error(errorMsgForRGB);
-  }
+  } // prettier-ignore
+
   rgbValues.forEach((colorValue) => {
     if (colorValue > 255 || colorValue < 0) {
       throw new Error(errorMsgForRGB);
@@ -61,6 +61,7 @@ export const colorToRGB = (rgbText) => {
     r: rgbValues[0],
     g: rgbValues[1],
     b: rgbValues[2],
+    a: rgbValues[3] === undefined ? 1 : rgbValues[3],
   };
 };
 
@@ -72,12 +73,12 @@ const parseIntForRGB = (rgbText) => {
     return rgbText
       .substring(openBracketIndex + 1, closeBracketIndex)
       .split(', ')
-      .map((colorValue) => parseInt(colorValue));
+      .map((colorValue) => parseFloat(colorValue));
   } else if (rgbText.includes('#')) {
     return rgbText
       .slice(1, rgbText.length)
       .match(/.{1,2}/g)
-      .map((colorValue) => parseInt(colorValue, 16));
+      .map((colorValue) => parseFloat(colorValue, 16));
   }
 
   throw new Error(errorMsgForRGB);
