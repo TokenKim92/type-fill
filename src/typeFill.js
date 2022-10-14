@@ -49,7 +49,7 @@ class TypeFill {
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
 
-    this.#createRootElement(this.#elementObj);
+    this.#createRootElement();
     this.#createCanvases();
     this.#textFrame = new TextFrame(
       this.#ctx,
@@ -81,40 +81,44 @@ class TypeFill {
       this.#stopRippleTimer();
     }
 
+    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+    this.#imageData = this.#ctx.getImageData(0, 0, this.#stageSize.width, this.#stageSize.height); // prettier-ignore
     this.#curRippleCount = 0;
     this.#rippleList.forEach((ripple) => ripple.reset());
-    this.#setFillTimer();
     this.#isProcessing = true;
+
+    this.#setFillTimer();
+  };
+
+  #createRootElement = () => {
+    this.#rootElement = document.createElement('div');
+    this.#elementObj.parentElement.insertBefore(
+      this.#rootElement,
+      this.#elementObj
+    );
+    this.#rootElement.append(this.#elementObj);
+
+    this.#elementObj.style.opacity = 0;
   };
 
   #createCanvases = () => {
+    const padding = parseIntForPadding(this.#rootStyle.padding);
     const margin = parseIntForMargin(this.#rootStyle.margin);
     const backgroundSize = this.#getClientSize(this.#elementObj);
 
     this.#backgroundCanvas = document.createElement('canvas');
     this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
-    this.#backgroundCanvas.width = backgroundSize.width;
-    this.#backgroundCanvas.height = backgroundSize.height;
+    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCanvas.style.cssText = `
-      left: ${margin.left}px;
-      top: ${margin.top}px;
-    `;
-
-    const padding = parseIntForPadding(this.#rootStyle.padding);
-    this.#stageSize = this.#getClientSize(
-      this.#elementObj,
-      padding.left + padding.right,
-      padding.top + padding.bottom
-    );
+    left: ${margin.left}px;
+    top: ${margin.top}px;
+  `;
+    this.#resetBackground(backgroundSize);
 
     this.#canvas = document.createElement('canvas');
     this.#ctx = this.#canvas.getContext('2d', { willReadFrequently: true });
-    this.#canvas.width = this.#stageSize.width;
-    this.#canvas.height = this.#stageSize.height;
-    this.#canvas.style.cssText = `
-      left: ${padding.left + margin.left}px;
-      top: ${padding.top + margin.top}px;
-    `;
+    this.#canvas.style.top = `${padding.left + margin.left}px`;
+    this.#resetStage(padding, margin);
 
     this.#canvasContainer = document.createElement('div');
     this.#canvasContainer.style.top = `-${
@@ -129,21 +133,6 @@ class TypeFill {
     this.#canvasContainer.append(this.#backgroundCanvas);
     this.#canvasContainer.append(this.#canvas);
     this.#rootElement.append(this.#canvasContainer);
-
-    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
-    this.#backgroundCtx.fillRect(
-      0,
-      0,
-      this.#backgroundCanvas.width,
-      this.#backgroundCanvas.height
-    );
-
-    this.#imageData = this.#ctx.getImageData(
-      0,
-      0,
-      this.#stageSize.width,
-      this.#stageSize.height
-    );
   };
 
   #resize = () => {
@@ -166,8 +155,18 @@ class TypeFill {
 
     const padding = parseIntForPadding(this.#rootStyle.padding);
     const margin = parseIntForMargin(this.#rootStyle.margin);
+    this.#canvasContainer.style.top = `-${
+      backgroundSize.height + margin.top + margin.bottom
+    }px`;
 
+    this.#resetStage(padding, margin);
+    this.#initFrameMetricsAndRipple();
+    this.restart();
+  };
+
+  #resetStage = (padding, margin) => {
     this.#canvas.style.left = `${padding.left + margin.left}px`;
+
     this.#stageSize = this.#getClientSize(
       this.#elementObj,
       padding.left + padding.right,
@@ -175,19 +174,13 @@ class TypeFill {
     );
     this.#canvas.width = this.#stageSize.width;
     this.#canvas.height = this.#stageSize.height;
+
     this.#imageData = this.#ctx.getImageData(
       0,
       0,
       this.#stageSize.width,
       this.#stageSize.height
     );
-
-    this.#canvasContainer.style.top = `-${
-      backgroundSize.height + margin.top + margin.bottom
-    }px`;
-
-    this.#initFrameMetricsAndRipple();
-    this.restart();
   };
 
   #resetBackground = (backgroundSize) => {
@@ -201,7 +194,6 @@ class TypeFill {
     this.#backgroundCanvas.width = backgroundSize.width;
     this.#backgroundCanvas.height = backgroundSize.height;
 
-    this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCtx.fillRect(
       0,
       0,
@@ -216,14 +208,6 @@ class TypeFill {
       (textField) => new Ripple(this.#rippleTime, TypeFill.FPS_TIME, textField)
     );
     this.#textCount = this.#rippleList.length;
-  };
-
-  #createRootElement = (elementObj) => {
-    this.#rootElement = document.createElement('div');
-    elementObj.parentElement.insertBefore(this.#rootElement, elementObj);
-    this.#rootElement.append(elementObj);
-
-    elementObj.style.opacity = 0;
   };
 
   #setFillTimer = () => {
