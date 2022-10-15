@@ -34,6 +34,7 @@ class TypeFill {
   #isProcessing = false;
   #canvasContainer;
   #imageData;
+  #isInitialized = false;
 
   constructor(elementId, fillTime = 1000) {
     checkType(elementId, primitiveType.string);
@@ -54,14 +55,18 @@ class TypeFill {
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
 
     this.#createRootElement();
-    this.#createCanvases();
-    this.#textFrame = new TextFrame(
-      this.#ctx,
-      this.#rootStyle,
-      this.#text,
-      this.#fontRGB.a
-    );
-    this.#initFrameMetricsAndRipple();
+    setTimeout(() => {
+      this.#createCanvases();
+      this.#textFrame = new TextFrame(
+        this.#ctx,
+        this.#rootStyle,
+        this.#text,
+        this.#fontRGB.a
+      );
+      this.#initFrameMetricsAndRipple();
+
+      this.#isInitialized = true;
+    }, 380);
 
     window.addEventListener('resize', this.#resize);
   }
@@ -102,7 +107,10 @@ class TypeFill {
     );
     this.#rootElement.append(this.#elementObj);
 
-    this.#elementObj.style.opacity = 0;
+    this.#elementObj.style.transition = 'opacity 300ms ease-out';
+    setTimeout(() => {
+      this.#elementObj.style.opacity = 0;
+    }, 1);
   };
 
   #createCanvases = () => {
@@ -140,11 +148,11 @@ class TypeFill {
 
   #resize = () => {
     const backgroundSize = this.#getClientSize(this.#elementObj);
-    const isResized = backgroundSize.height === this.#backgroundCanvas.height;
+    const isResized = backgroundSize.height !== this.#backgroundCanvas.height;
     const gap = backgroundSize.width - this.#backgroundCanvas.width;
 
     this.#resetBackground(backgroundSize);
-    if (isResized) {
+    if (!isResized) {
       const adjustedGap =
         this.#rootStyle.textAlign === 'center' ? gap / 2 : gap;
 
@@ -216,6 +224,10 @@ class TypeFill {
 
   #setFillTimer = () => {
     const intervalId = setInterval(() => {
+      if (!this.#isInitialized) {
+        return;
+      }
+
       if (this.#curRippleCount > this.#targetRippleCount) {
         this.#stopRippleTimer();
         return;
@@ -253,10 +265,10 @@ class TypeFill {
   #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
     return {
       width: Math.round(
-        this.#elementObj.getBoundingClientRect().width - paddingWidth
+        elementObj.getBoundingClientRect().width - paddingWidth
       ),
       height: Math.round(
-        this.#elementObj.getBoundingClientRect().height - paddingHeight
+        elementObj.getBoundingClientRect().height - paddingHeight
       ),
     };
   };
