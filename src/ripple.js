@@ -1,18 +1,21 @@
 import { distance, randomPosInRect } from './utils.js';
 
 class Ripple {
-  static BOUNCE = 0.82;
-
   #targetTime;
   #speed;
   #curRadius = 0;
   #targetRadius;
   #startPos;
 
-  constructor(targetTime, fpsTime, stageRect, startPos = undefined) {
+  constructor(targetTime, fpsTime, stageRect, startPosRatio = undefined) {
     this.#targetTime = targetTime;
     this.#startPos =
-      startPos !== undefined ? startPos : randomPosInRect(stageRect);
+      startPosRatio !== undefined
+        ? {
+            x: stageRect.x + stageRect.width * startPosRatio,
+            y: stageRect.y + stageRect.height * startPosRatio,
+          }
+        : randomPosInRect(stageRect);
     this.#targetRadius = this.#getMaxDistance(this.#startPos, stageRect);
     this.#speed = this.#calculateSpeed(this.#targetRadius, fpsTime);
   }
@@ -40,11 +43,11 @@ class Ripple {
 
   get Metrics() {
     return {
-      centerPoint: {
+      point: {
         x: this.#startPos.x,
         y: this.#startPos.y,
       },
-      radius: this.#curRadius,
+      area: this.#curRadius,
     };
   }
 }

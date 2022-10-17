@@ -30,12 +30,16 @@ export const randomPosInRect = (rect) => {
   return { x, y };
 };
 
-export const collide = (pos1, pos2, radius) => {
-  if (distance(pos1.x, pos1.y, pos2.x, pos2.y) <= radius) {
-    return true;
-  } else {
-    return false;
-  }
+export const collideRipple = (pos1, pos2, radius) => {
+  return distance(pos1.x, pos1.y, pos2.x, pos2.y) <= radius;
+};
+
+export const collideHorizontal = (pos1, pos2, width) => {
+  return pos2.x - width.left <= pos1.x && pos1.x <= pos2.x + width.right;
+};
+
+export const collideVertical = (pos1, pos2, width) => {
+  return pos2.y - width.top <= pos1.y && pos1.y <= pos2.y + width.bottom;
 };
 
 const errorMsgForRGB =

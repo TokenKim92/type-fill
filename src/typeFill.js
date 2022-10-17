@@ -2,12 +2,16 @@ import Ripple from './ripple.js';
 import TextFrame from './textFrame.js';
 import {
   checkType,
-  collide,
+  collideRipple,
   primitiveType,
   colorToRGB,
   parseIntForPadding,
   parseIntForMargin,
+  collideHorizontal,
+  collideVertical,
 } from './utils.js';
+import Horizontal from './horizontal.js';
+import Vertical from './vertical.js';
 
 class TypeFill {
   static FPS = 60;
@@ -20,14 +24,14 @@ class TypeFill {
   #rootElement;
   #elementObj;
   #text;
-  #rippleList = [];
-  #stopRippleTimer;
+  #fillFigureList = [];
+  #stopFillTimer;
   #textFrame;
   #textFrameMetrics;
   #stageSize;
   #fillTime;
-  #targetRippleCount;
-  #curRippleCount = 0;
+  #targetFillCount;
+  #curFillCount = 0;
   #fontRGB;
   #rootStyle;
   #textCount;
@@ -35,8 +39,10 @@ class TypeFill {
   #canvasContainer;
   #imageData;
   #isInitialized = false;
+  #fillAlgorithm;
+  #collide;
 
-  constructor(elementId, fillTime = 1000) {
+  constructor(elementId, fillTime = 1000, fillAlgorithm = 'ripple') {
     checkType(elementId, primitiveType.string);
     checkType(fillTime, primitiveType.number);
 
@@ -49,10 +55,11 @@ class TypeFill {
     }
 
     this.#fillTime = fillTime;
-    this.#targetRippleCount = fillTime / TypeFill.FPS_TIME;
+    this.#targetFillCount = fillTime / TypeFill.FPS_TIME;
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
+    this.#fillAlgorithm = fillAlgorithm;
 
     this.#createRootElement();
     setTimeout(() => {
@@ -63,7 +70,7 @@ class TypeFill {
         this.#text,
         this.#fontRGB.a
       );
-      this.#initFrameMetricsAndRipple();
+      this.#initFrameMetricsAndFillFigure();
 
       this.#isInitialized = true;
     }, 380);
@@ -80,20 +87,20 @@ class TypeFill {
 
   stop = () => {
     if (this.#isProcessing) {
-      this.#stopRippleTimer();
+      this.#stopFillTimer();
       this.#isProcessing = false;
     }
   };
 
   restart = () => {
     if (this.#isProcessing) {
-      this.#stopRippleTimer();
+      this.#stopFillTimer();
     }
 
     this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
     this.#imageData = this.#ctx.getImageData(0, 0, this.#stageSize.width, this.#stageSize.height); // prettier-ignore
-    this.#curRippleCount = 0;
-    this.#rippleList.forEach((ripple) => ripple.reset());
+    this.#curFillCount = 0;
+    this.#fillFigureList.forEach((fillFigure) => fillFigure.reset());
     this.#isProcessing = true;
 
     this.#setFillTimer();
@@ -171,7 +178,7 @@ class TypeFill {
     }px`;
 
     this.#resetStage(padding, margin);
-    this.#initFrameMetricsAndRipple();
+    this.#initFrameMetricsAndFillFigure();
     this.restart();
   };
 
@@ -214,12 +221,40 @@ class TypeFill {
     );
   };
 
-  #initFrameMetricsAndRipple = () => {
+  #initFrameMetricsAndFillFigure = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
-    this.#rippleList = this.#textFrameMetrics.textFields.map(
-      (textField) => new Ripple(this.#fillTime, TypeFill.FPS_TIME, textField)
+    this.#fillFigureList = this.#textFrameMetrics.textFields.map((textField) =>
+      this.#creteFillFigure(textField)
     );
-    this.#textCount = this.#rippleList.length;
+    this.#textCount = this.#fillFigureList.length;
+    this.#initCollideAlgorithm();
+  };
+
+  #creteFillFigure = (textField) => {
+    switch (this.#fillAlgorithm) {
+      case 'horizontal':
+        return new Horizontal(this.#fillTime, TypeFill.FPS_TIME, textField);
+      case 'vertical':
+        return new Vertical(this.#fillTime, TypeFill.FPS_TIME, textField);
+      case 'ripple':
+      default:
+        return new Ripple(this.#fillTime, TypeFill.FPS_TIME, textField);
+    }
+  };
+
+  #initCollideAlgorithm = () => {
+    switch (this.#fillAlgorithm) {
+      case 'horizontal':
+        this.#collide = collideHorizontal;
+        break;
+      case 'vertical':
+        this.#collide = collideVertical;
+        break;
+      case 'ripple':
+      default:
+        this.#collide = collideRipple;
+        break;
+    }
   };
 
   #setFillTimer = () => {
@@ -228,27 +263,27 @@ class TypeFill {
         return;
       }
 
-      if (this.#curRippleCount > this.#targetRippleCount) {
-        this.#stopRippleTimer();
+      if (this.#curFillCount > this.#targetFillCount) {
+        this.#stopFillTimer();
         return;
       }
 
       this.#fillText();
-      this.#curRippleCount++;
+      this.#curFillCount++;
     }, TypeFill.FPS_TIME);
 
-    this.#stopRippleTimer = () => clearInterval(intervalId);
+    this.#stopFillTimer = () => clearInterval(intervalId);
   };
 
   #fillText = () => {
     for (let i = 0; i < this.#textCount; i++) {
-      const ripple = this.#rippleList[i];
+      const fillFigure = this.#fillFigureList[i];
       const dots = this.#textFrameMetrics.dotPositions[i];
 
-      ripple.update();
+      fillFigure.update();
       dots
         .filter((dot) =>
-          collide(dot, ripple.Metrics.centerPoint, ripple.Metrics.radius)
+          this.#collide(dot, fillFigure.Metrics.point, fillFigure.Metrics.area)
         )
         .forEach((dot) => {
           const index = dot.x + dot.y * this.#stageSize.width;
