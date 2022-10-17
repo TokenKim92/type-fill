@@ -88,8 +88,11 @@ class TextFrame {
     const textWidthList = [];
     const baseLinePos = this.#baseLinePos[index];
     let character;
+    let prevCharacter = '';
     let textMetrics;
     let textField;
+    let actualTextWidth;
+    let offsetPosX;
 
     for (let i = 0; i < text.length; i++) {
       character = text[i];
@@ -100,30 +103,40 @@ class TextFrame {
         continue;
       }
 
-      // TODO:: find more correcter x and width
+      actualTextWidth =
+        this.#ctx.measureText(prevCharacter + character).width -
+        this.#ctx.measureText(prevCharacter).width;
+      offsetPosX =
+        actualTextWidth !== textMetrics.width
+          ? textMetrics.width - actualTextWidth
+          : 0;
+
       textField = {
         x:
           i === 0
-            ? baseLinePos.x
+            ? Math.round(baseLinePos.x - textMetrics.actualBoundingBoxLeft)
             : Math.round(
                 textWidthList.reduce(
                   (sum, textWidth) => sum + textWidth,
                   baseLinePos.x
-                )
+                ) -
+                  textMetrics.actualBoundingBoxLeft -
+                  offsetPosX
               ),
-        y: Math.round(baseLinePos.y - textMetrics.actualBoundingBoxAscent),
+        y: Math.round(baseLinePos.y - textMetrics.actualBoundingBoxAscent - 1),
         width: Math.round(
-          Math.abs(textMetrics.actualBoundingBoxLeft) +
-            textMetrics.actualBoundingBoxRight
+          textMetrics.actualBoundingBoxLeft + textMetrics.actualBoundingBoxRight
         ),
         height: Math.round(
           textMetrics.actualBoundingBoxAscent +
-            textMetrics.actualBoundingBoxDescent * 1
+            textMetrics.actualBoundingBoxDescent +
+            2
         ),
       };
 
-      textWidthList.push(Math.round(textMetrics.width));
+      textWidthList.push(actualTextWidth);
       textFields.push(textField);
+      prevCharacter = character;
     }
 
     return textFields;
