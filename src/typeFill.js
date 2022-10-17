@@ -2,11 +2,11 @@ import Ripple from './ripple.js';
 import TextFrame from './textFrame.js';
 import {
   checkType,
-  collideRipple,
   primitiveType,
   colorToRGB,
   parseIntForPadding,
   parseIntForMargin,
+  collideRipple,
   collideHorizontal,
   collideVertical,
 } from './utils.js';
@@ -16,6 +16,8 @@ import Vertical from './vertical.js';
 class TypeFill {
   static FPS = 60;
   static FPS_TIME = 1000 / TypeFill.FPS;
+  static DEFAULT_CREATOR = Ripple;
+  static DEFAULT_COLLIDE = collideRipple;
 
   #canvas;
   #ctx;
@@ -39,10 +41,28 @@ class TypeFill {
   #canvasContainer;
   #imageData;
   #isInitialized = false;
-  #fillAlgorithm;
-  #collide;
+  #fillCollide;
+  #fillCreator;
+  #fillRatio;
+  #fillAlgorithms = [
+    {
+      figure: 'horizontal',
+      creator: Horizontal,
+      collide: collideHorizontal,
+    },
+    {
+      figure: 'vertical',
+      creator: Vertical,
+      collide: collideVertical,
+    },
+    {
+      figure: 'ripple',
+      creator: Ripple,
+      collide: collideRipple,
+    },
+  ];
 
-  constructor(elementId, fillTime = 1000, fillAlgorithm = 'ripple') {
+  constructor(elementId, fillTime = 1000, fillAttributes = undefined) {
     checkType(elementId, primitiveType.string);
     checkType(fillTime, primitiveType.number);
 
@@ -53,13 +73,13 @@ class TypeFill {
     if (fillTime <= 0) {
       throw new Error("'fillTime' should be greater then 0.");
     }
+    this.#initFillAttributes(fillAttributes);
 
     this.#fillTime = fillTime;
     this.#targetFillCount = fillTime / TypeFill.FPS_TIME;
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
-    this.#fillAlgorithm = fillAlgorithm;
 
     this.#createRootElement();
     setTimeout(() => {
@@ -104,6 +124,68 @@ class TypeFill {
     this.#isProcessing = true;
 
     this.#setFillTimer();
+  };
+
+  #initFillAttributes = (fillAttributes) => {
+    if (fillAttributes === undefined) {
+      const defaultFillAttributes = {
+        figure: 'ripple',
+        ratio: undefined,
+      };
+
+      this.#initFillAlgorithm(defaultFillAttributes);
+      return;
+    }
+
+    if (fillAttributes.figure !== undefined) {
+      checkType(fillAttributes.figure, primitiveType.string);
+      const result = !!this.#fillAlgorithms.filter(
+        (algorithm) => algorithm.figure === fillAttributes.figure
+      ).length;
+
+      if (!result) {
+        console.warn(
+          "Since this figure is not valid, 'ripple' is used as the default."
+        );
+      }
+    }
+
+    if (fillAttributes.ratio !== undefined) {
+      checkType(fillAttributes.ratio, primitiveType.number);
+      const result = 0 <= fillAttributes.ratio && fillAttributes.ratio <= 1;
+
+      if (!result) {
+        fillAttributes.ratio = undefined;
+        console.warn(
+          'The ratio must be a number between 0 and 1. The starting position is randomly set due to the invalidation of the ratio.'
+        );
+      }
+    }
+
+    this.#initFillAlgorithm(fillAttributes);
+  };
+
+  #initFillAlgorithm = (fillAttributes) => {
+    const algorithmCount = this.#fillAlgorithms.length;
+    let i;
+    let fillAlgorithm;
+
+    this.#fillRatio = fillAttributes.ratio;
+
+    for (i = 0; i < algorithmCount; i++) {
+      fillAlgorithm = this.#fillAlgorithms[i];
+
+      if (fillAttributes.figure === fillAlgorithm.figure) {
+        this.#fillCreator = fillAlgorithm.creator;
+        this.#fillCollide = fillAlgorithm.collide;
+        return;
+      }
+    }
+
+    if (i === algorithmCount) {
+      this.#fillCreator = TypeFill.DEFAULT_CREATOR;
+      this.#fillCollide = TypeFill.DEFAULT_COLLIDE;
+    }
   };
 
   #createRootElement = () => {
@@ -223,38 +305,16 @@ class TypeFill {
 
   #initFrameMetricsAndFillFigure = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
-    this.#fillFigureList = this.#textFrameMetrics.textFields.map((textField) =>
-      this.#creteFillFigure(textField)
+    this.#fillFigureList = this.#textFrameMetrics.textFields.map(
+      (textField) =>
+        new this.#fillCreator(
+          this.#fillTime,
+          TypeFill.FPS_TIME,
+          textField,
+          this.#fillRatio
+        )
     );
     this.#textCount = this.#fillFigureList.length;
-    this.#initCollideAlgorithm();
-  };
-
-  #creteFillFigure = (textField) => {
-    switch (this.#fillAlgorithm) {
-      case 'horizontal':
-        return new Horizontal(this.#fillTime, TypeFill.FPS_TIME, textField);
-      case 'vertical':
-        return new Vertical(this.#fillTime, TypeFill.FPS_TIME, textField);
-      case 'ripple':
-      default:
-        return new Ripple(this.#fillTime, TypeFill.FPS_TIME, textField);
-    }
-  };
-
-  #initCollideAlgorithm = () => {
-    switch (this.#fillAlgorithm) {
-      case 'horizontal':
-        this.#collide = collideHorizontal;
-        break;
-      case 'vertical':
-        this.#collide = collideVertical;
-        break;
-      case 'ripple':
-      default:
-        this.#collide = collideRipple;
-        break;
-    }
   };
 
   #setFillTimer = () => {
@@ -283,7 +343,11 @@ class TypeFill {
       fillFigure.update();
       dots
         .filter((dot) =>
-          this.#collide(dot, fillFigure.Metrics.point, fillFigure.Metrics.area)
+          this.#fillCollide(
+            dot,
+            fillFigure.Metrics.point,
+            fillFigure.Metrics.area
+          )
         )
         .forEach((dot) => {
           const index = dot.x + dot.y * this.#stageSize.width;

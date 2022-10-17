@@ -158,7 +158,7 @@ class TextFrame {
         case 'center':
           return Math.round((stageRect.width - textMetrics.width) / 2);
         case 'justify':
-          console.error("'justify' option doesn't work.");
+          console.warn("'justify' option doesn't work.");
         case 'start':
         default:
           return 0;
