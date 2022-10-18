@@ -47,25 +47,28 @@ class TextFrame {
   };
 
   #getTextList = (stageRect) => {
-    const textList = this.#text.split(' ');
     const newTextList = [];
-    let lineText = '';
-    let isOutOfStage = false;
-    let isLastText = false;
 
-    textList.forEach((text, index) => {
-      isOutOfStage =
-        this.#ctx.measureText(lineText + text).width > stageRect.width;
-      isLastText = index === textList.length - 1;
+    this.#text.split('\n').forEach((lineText) => {
+      const textList = lineText.split(' ');
+      let prevText = '';
+      let isOutOfStage = false;
+      let isLastText = false;
 
-      if (isOutOfStage) {
-        newTextList.push(lineText.trimEnd());
-        isLastText ? newTextList.push(text) : (lineText = text + ' ');
-      } else {
-        isLastText
-          ? newTextList.push(lineText + text)
-          : (lineText = lineText + text + ' ');
-      }
+      textList.forEach((text, index) => {
+        isOutOfStage =
+          this.#ctx.measureText(prevText + text).width > stageRect.width;
+        isLastText = index === textList.length - 1;
+
+        if (isOutOfStage) {
+          newTextList.push(prevText.trimEnd());
+          isLastText ? newTextList.push(text) : (prevText = text + ' ');
+        } else {
+          isLastText
+            ? newTextList.push(prevText + text)
+            : (prevText = prevText + text + ' ');
+        }
+      });
     });
 
     return newTextList;
