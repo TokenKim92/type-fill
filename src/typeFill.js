@@ -21,7 +21,7 @@ class TypeFill {
 
   #canvas;
   #ctx;
-  #backgroundCanvas;
+  #backgroundCanvas = undefined;
   #backgroundCtx;
   #rootElement;
   #elementObj;
@@ -31,6 +31,7 @@ class TypeFill {
   #textFrame;
   #textFrameMetrics;
   #stageSize;
+  #backgroundSize;
   #fillTime;
   #targetFillCount;
   #curFillCount = 0;
@@ -196,6 +197,7 @@ class TypeFill {
     );
     this.#rootElement.append(this.#elementObj);
 
+    this.#rootElement.style.position = 'relative';
     this.#elementObj.style.transition = 'opacity 300ms ease-out';
     setTimeout(() => {
       this.#elementObj.style.opacity = 0;
@@ -205,42 +207,46 @@ class TypeFill {
   #createCanvases = () => {
     const padding = parseIntForPadding(this.#rootStyle.padding);
     const margin = parseIntForMargin(this.#rootStyle.margin);
-    const backgroundSize = this.#getClientSize(this.#elementObj);
+    const toBeCreatedBackground =
+      colorToRGB(this.#rootStyle.backgroundColor).a !== 0;
+    this.#backgroundSize = this.#getClientSize(this.#elementObj);
 
-    this.#backgroundCanvas = document.createElement('canvas');
-    this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
-    this.#backgroundCanvas.style.cssText = `
-      left: ${margin.left}px;
-      top: ${margin.top}px;
-    `;
-    this.#resetBackground(backgroundSize);
+    this.#canvasContainer = document.createElement('div');
+    this.#canvasContainer.style.top = `-${
+      this.#backgroundSize.height + margin.top + margin.bottom
+    }px`;
+    this.#canvasContainer.style.position = 'relative';
+
+    if (toBeCreatedBackground) {
+      this.#backgroundCanvas = document.createElement('canvas');
+      this.#backgroundCtx = this.#backgroundCanvas.getContext('2d');
+      this.#backgroundCanvas.style.cssText = `
+        left: ${margin.left}px;
+        top: ${margin.top}px;
+      `;
+      this.#resetBackground();
+      this.#backgroundCanvas.style.position = 'absolute';
+      this.#canvasContainer.append(this.#backgroundCanvas);
+    }
 
     this.#canvas = document.createElement('canvas');
     this.#ctx = this.#canvas.getContext('2d', { willReadFrequently: true });
     this.#canvas.style.top = `${padding.top + margin.top}px`;
+    this.#canvas.style.position = 'absolute';
     this.#resetStage(padding, margin);
 
-    this.#canvasContainer = document.createElement('div');
-    this.#canvasContainer.style.top = `-${
-      backgroundSize.height + margin.top + margin.bottom
-    }px`;
-
-    this.#rootElement.style.position = 'relative';
-    this.#canvasContainer.style.position = 'relative';
-    this.#canvas.style.position = 'absolute';
-    this.#backgroundCanvas.style.position = 'absolute';
-
-    this.#canvasContainer.append(this.#backgroundCanvas);
     this.#canvasContainer.append(this.#canvas);
     this.#rootElement.append(this.#canvasContainer);
   };
 
   #resize = () => {
-    const backgroundSize = this.#getClientSize(this.#elementObj);
-    const isResized = backgroundSize.height !== this.#backgroundCanvas.height;
-    const gap = backgroundSize.width - this.#backgroundCanvas.width;
+    const newBackgroundSize = this.#getClientSize(this.#elementObj);
+    const isResized = newBackgroundSize.height !== this.#backgroundSize.height;
+    const gap = newBackgroundSize.width - this.#backgroundSize.width;
 
-    this.#resetBackground(backgroundSize);
+    this.#backgroundSize = newBackgroundSize;
+    this.#backgroundCanvas && this.#resetBackground();
+
     if (!isResized) {
       const adjustedGap =
         this.#rootStyle.textAlign === 'center' ? gap / 2 : gap;
@@ -256,7 +262,7 @@ class TypeFill {
     const padding = parseIntForPadding(this.#rootStyle.padding);
     const margin = parseIntForMargin(this.#rootStyle.margin);
     this.#canvasContainer.style.top = `-${
-      backgroundSize.height + margin.top + margin.bottom
+      newBackgroundSize.height + margin.top + margin.bottom
     }px`;
 
     this.#resetStage(padding, margin);
@@ -283,23 +289,16 @@ class TypeFill {
     );
   };
 
-  #resetBackground = (backgroundSize) => {
-    this.#backgroundCtx.clearRect(
-      0,
-      0,
-      this.#backgroundCanvas.width,
-      this.#backgroundCanvas.height
-    );
-
-    this.#backgroundCanvas.width = backgroundSize.width;
-    this.#backgroundCanvas.height = backgroundSize.height;
+  #resetBackground = () => {
+    this.#backgroundCanvas.width = this.#backgroundSize.width;
+    this.#backgroundCanvas.height = this.#backgroundSize.height;
 
     this.#backgroundCtx.fillStyle = this.#rootStyle.backgroundColor;
     this.#backgroundCtx.fillRect(
       0,
       0,
-      this.#backgroundCanvas.width,
-      this.#backgroundCanvas.height
+      this.#backgroundSize.width,
+      this.#backgroundSize.height
     );
   };
 
