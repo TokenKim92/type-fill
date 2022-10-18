@@ -216,6 +216,7 @@ class TypeFill {
       this.#backgroundSize.height + margin.top + margin.bottom
     }px`;
     this.#canvasContainer.style.position = 'relative';
+    this.#setTransformProperty();
 
     if (toBeCreatedBackground) {
       this.#backgroundCanvas = document.createElement('canvas');
@@ -302,6 +303,25 @@ class TypeFill {
     );
   };
 
+  #setTransformProperty() {
+    if (this.#transformMatrix.translateX || this.#transformMatrix.translateY) {
+      this.#canvasContainer.style.transform = `
+        translate(${this.#transformMatrix.translateX}px, ${this.#transformMatrix.translateY}px)
+      `; //prettier-ignore
+    }
+
+    if (
+      this.#transformMatrix.skewX ||
+      this.#transformMatrix.skewY ||
+      this.#transformMatrix.scaleX !== 1 ||
+      this.#transformMatrix.scaleY !== 1
+    ) {
+      console.warn(
+        'Until now, only translation was possible in the transform property of css.'
+      );
+    }
+  }
+
   #initFrameMetricsAndFillFigure = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
     this.#fillFigureList = this.#textFrameMetrics.textFields.map(
@@ -370,6 +390,27 @@ class TypeFill {
       ),
     };
   };
+
+  get #transformMatrix() {
+    const openBracketIndex = this.#rootStyle.transform.indexOf('(');
+    const closeBracketIndex = this.#rootStyle.transform.indexOf(')');
+    const matrixValues =
+      this.#rootStyle.transform !== 'none'
+        ? this.#rootStyle.transform
+            .substring(openBracketIndex + 1, closeBracketIndex)
+            .split(', ')
+            .map((colorValue) => parseFloat(colorValue))
+        : [1, 0, 0, 1, 0, 0];
+
+    return {
+      scaleX: matrixValues[0],
+      skewY: matrixValues[1],
+      skewX: matrixValues[2],
+      scaleY: matrixValues[3],
+      translateX: matrixValues[4],
+      translateY: matrixValues[5],
+    };
+  }
 }
 
 export default TypeFill;
