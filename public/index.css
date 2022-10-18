@@ -1,5 +1,7 @@
 #type {
-  background-color: beige;
+  background-color: rgba(255, 255, 0, 0.4);
+  text-align: end;
   color: brown;
-  font-size: 200px;
+  font-size: 100px;
+  font-family: 'Times New Roman', Times, serif;
 }

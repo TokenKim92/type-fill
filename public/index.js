@@ -1,3 +1,6 @@
-import TypeRipple from '../src/TypeRipple.js';
+import TypeFill from '../src/typeFill.js';
 
-new TypeRipple('type', 2000);
+new TypeFill('type', 2000, {
+  figure: 'horizontal',
+  ratio: 0.5,
+}).start();
