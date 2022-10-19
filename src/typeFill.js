@@ -42,6 +42,7 @@ class TypeFill {
   #canvasContainer;
   #imageData;
   #isInitialized = false;
+  #inheritedScaleRatio = undefined;
   #fillCollide;
   #fillCreator;
   #fillRatio;
@@ -81,6 +82,7 @@ class TypeFill {
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
+    this.#initInheritedScaleRatio();
 
     this.#createRootElement();
     setTimeout(() => {
@@ -209,14 +211,15 @@ class TypeFill {
     const margin = parseIntForMargin(this.#rootStyle.margin);
     const toBeCreatedBackground =
       colorToRGB(this.#rootStyle.backgroundColor).a !== 0;
-    this.#backgroundSize = this.#getClientSize(this.#elementObj);
 
     this.#canvasContainer = document.createElement('div');
+    this.#canvasContainer.style.transform = this.#rootStyle.transform;
+    this.#elementObj.style.transform = 'matrix(1, 0, 0, 1, 0, 0)';
+    this.#backgroundSize = this.#getClientSize(this.#elementObj);
     this.#canvasContainer.style.top = `-${
       this.#backgroundSize.height + margin.top + margin.bottom
     }px`;
     this.#canvasContainer.style.position = 'relative';
-    this.#setTransformProperty();
 
     if (toBeCreatedBackground) {
       this.#backgroundCanvas = document.createElement('canvas');
@@ -303,25 +306,6 @@ class TypeFill {
     );
   };
 
-  #setTransformProperty() {
-    if (this.#transformMatrix.translateX || this.#transformMatrix.translateY) {
-      this.#canvasContainer.style.transform = `
-        translate(${this.#transformMatrix.translateX}px, ${this.#transformMatrix.translateY}px)
-      `; //prettier-ignore
-    }
-
-    if (
-      this.#transformMatrix.skewX ||
-      this.#transformMatrix.skewY ||
-      this.#transformMatrix.scaleX !== 1 ||
-      this.#transformMatrix.scaleY !== 1
-    ) {
-      console.warn(
-        'Until now, only translation was possible in the transform property of css.'
-      );
-    }
-  }
-
   #initFrameMetricsAndFillFigure = () => {
     this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
     this.#fillFigureList = this.#textFrameMetrics.textFields.map(
@@ -383,33 +367,29 @@ class TypeFill {
   #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
     return {
       width: Math.round(
-        elementObj.getBoundingClientRect().width - paddingWidth
+        (elementObj.getBoundingClientRect().width - paddingWidth) *
+          this.#inheritedScaleRatio
       ),
       height: Math.round(
-        elementObj.getBoundingClientRect().height - paddingHeight
+        (elementObj.getBoundingClientRect().height - paddingHeight) *
+          this.#inheritedScaleRatio
       ),
     };
   };
 
-  get #transformMatrix() {
-    const openBracketIndex = this.#rootStyle.transform.indexOf('(');
-    const closeBracketIndex = this.#rootStyle.transform.indexOf(')');
-    const matrixValues =
-      this.#rootStyle.transform !== 'none'
-        ? this.#rootStyle.transform
-            .substring(openBracketIndex + 1, closeBracketIndex)
-            .split(', ')
-            .map((colorValue) => parseFloat(colorValue))
-        : [1, 0, 0, 1, 0, 0];
+  #initInheritedScaleRatio() {
+    const height = this.#elementObj.getBoundingClientRect().height;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.style.position = 'absolute';
+    tempCanvas.height = height;
+    this.#elementObj.append(tempCanvas);
 
-    return {
-      scaleX: matrixValues[0],
-      skewY: matrixValues[1],
-      skewX: matrixValues[2],
-      scaleY: matrixValues[3],
-      translateX: matrixValues[4],
-      translateY: matrixValues[5],
-    };
+    setTimeout(() => this.#elementObj.removeChild(tempCanvas), 1);
+
+    this.#inheritedScaleRatio =
+      this.#rootStyle.transform !== 'none'
+        ? 1
+        : height / tempCanvas.getBoundingClientRect().height;
   }
 }
 
