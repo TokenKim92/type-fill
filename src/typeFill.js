@@ -43,7 +43,6 @@ class TypeFill {
   #canvasContainer;
   #imageData;
   #isInitialized = false;
-  #inheritedScaleRatio = undefined;
   #fillCollide;
   #fillCreator;
   #fillRatio;
@@ -83,7 +82,6 @@ class TypeFill {
     this.#text = this.#elementObj.innerText;
     this.#rootStyle = window.getComputedStyle(this.#elementObj);
     this.#fontRGB = colorToRGB(this.#rootStyle.color);
-    this.#initInheritedScaleRatio();
 
     this.#createRootElement();
     setTimeout(() => {
@@ -367,31 +365,10 @@ class TypeFill {
 
   #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
     return {
-      width: Math.round(
-        (elementObj.getBoundingClientRect().width - paddingWidth) *
-          this.#inheritedScaleRatio
-      ),
-      height: Math.round(
-        (elementObj.getBoundingClientRect().height - paddingHeight) *
-          this.#inheritedScaleRatio
-      ),
+      width: Math.round(elementObj.offsetWidth - paddingWidth),
+      height: Math.round(elementObj.offsetHeight - paddingHeight),
     };
   };
-
-  #initInheritedScaleRatio() {
-    const height = this.#elementObj.getBoundingClientRect().height;
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.style.position = 'absolute';
-    tempCanvas.height = height;
-    this.#elementObj.append(tempCanvas);
-
-    setTimeout(() => this.#elementObj.removeChild(tempCanvas), 1);
-
-    this.#inheritedScaleRatio =
-      this.#rootStyle.transform !== 'none'
-        ? 1
-        : height / tempCanvas.getBoundingClientRect().height;
-  }
 }
 
 export default TypeFill;
