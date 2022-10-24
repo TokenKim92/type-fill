@@ -18,6 +18,7 @@ class TypeFill {
   static FPS_TIME = 1000 / TypeFill.FPS;
   static DEFAULT_CREATOR = Ripple;
   static DEFAULT_COLLIDE = collideRipple;
+  static OPACITY_TRANSITION_TIME = 300;
 
   #canvas;
   #ctx;
@@ -96,7 +97,7 @@ class TypeFill {
       this.#initFrameMetricsAndFillFigure();
 
       this.#isInitialized = true;
-    }, 380);
+    }, TypeFill.OPACITY_TRANSITION_TIME * 1.1);
 
     window.addEventListener('resize', this.#resize);
   }
@@ -120,8 +121,6 @@ class TypeFill {
       this.#stopFillTimer();
     }
 
-    this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-    this.#imageData = this.#ctx.getImageData(0, 0, this.#stageSize.width, this.#stageSize.height); // prettier-ignore
     this.#curFillCount = 0;
     this.#fillFigureList.forEach((fillFigure) => fillFigure.reset());
     this.#isProcessing = true;
@@ -200,7 +199,7 @@ class TypeFill {
     this.#rootElement.append(this.#elementObj);
 
     this.#rootElement.style.position = 'relative';
-    this.#elementObj.style.transition = 'opacity 300ms ease-out';
+    this.#elementObj.style.transition = `opacity ${TypeFill.OPACITY_TRANSITION_TIME}ms ease-out`;
     setTimeout(() => {
       this.#elementObj.style.opacity = 0;
     }, 1);
@@ -211,11 +210,13 @@ class TypeFill {
     const margin = parseIntForMargin(this.#rootStyle.margin);
     const toBeCreatedBackground =
       colorToRGB(this.#rootStyle.backgroundColor).a !== 0;
+    this.#backgroundSize = this.#getClientSize(this.#elementObj);
 
     this.#canvasContainer = document.createElement('div');
-    this.#canvasContainer.style.transform = this.#rootStyle.transform;
-    this.#elementObj.style.transform = 'matrix(1, 0, 0, 1, 0, 0)';
-    this.#backgroundSize = this.#getClientSize(this.#elementObj);
+    this.#canvasContainer.style.transform =
+      this.#rootStyle.display !== 'inline'
+        ? this.#rootStyle.transform
+        : 'matrix(1, 0, 0, 1, 0, 0)';
     this.#canvasContainer.style.top = `-${
       this.#backgroundSize.height + margin.top + margin.bottom
     }px`;
