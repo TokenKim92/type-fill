@@ -1,6 +1,10 @@
 import TypeFill from '../src/typeFill.js';
 
-new TypeFill('type', 2000, {
-  figure: 'horizontal',
+const type = new TypeFill('type', 2000, {
   ratio: 0.5,
-}).start();
+});
+type.start();
+
+setTimeout(() => {
+  type.restart();
+}, 3000);
