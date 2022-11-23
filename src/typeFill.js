@@ -28,7 +28,6 @@ class TypeFill {
   #elementObj;
   #text;
   #fillFigureList = [];
-  #stopFillTimer;
   #textFrame;
   #textFrameMetrics;
   #stageSize;
@@ -102,28 +101,31 @@ class TypeFill {
 
   start = () => {
     if (!this.#isProcessing) {
-      this.#setFillTimer();
       this.#isProcessing = true;
+      requestAnimationFrame(this.#draw);
     }
   };
 
   stop = () => {
     if (this.#isProcessing) {
-      this.#stopFillTimer();
       this.#isProcessing = false;
     }
   };
 
   restart = () => {
-    if (this.#isProcessing) {
-      this.#stopFillTimer();
+    if (!this.#isInitialized) {
+      return;
     }
 
+    this.#imageData.data.fill(0);
+    this.#ctx.putImageData(this.#imageData, 0, 0);
     this.#curFillCount = 0;
     this.#fillFigureList.forEach((fillFigure) => fillFigure.reset());
-    this.#isProcessing = true;
 
-    this.#setFillTimer();
+    if (!this.#isProcessing) {
+      this.#isProcessing = true;
+      requestAnimationFrame(this.#draw);
+    }
   };
 
   #initFillAttributes = (fillAttributes) => {
@@ -319,22 +321,17 @@ class TypeFill {
     this.#textCount = this.#fillFigureList.length;
   };
 
-  #setFillTimer = () => {
-    const intervalId = setInterval(() => {
-      if (!this.#isInitialized) {
-        return;
-      }
-
-      if (this.#curFillCount > this.#targetFillCount) {
-        this.#stopFillTimer();
+  #draw = () => {
+    if (this.#isInitialized) {
+      if (this.#curFillCount > this.#targetFillCount || !this.#isProcessing) {
         return;
       }
 
       this.#fillText();
       this.#curFillCount++;
-    }, TypeFill.FPS_TIME);
+    }
 
-    this.#stopFillTimer = () => clearInterval(intervalId);
+    requestAnimationFrame(this.#draw);
   };
 
   #fillText = () => {
