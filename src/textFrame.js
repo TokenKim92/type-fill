@@ -36,13 +36,13 @@ class TextFrame {
       });
     }
 
-    const dotPositions = this.#getDotPositions(stageRect, textFields);
+    const pixelInfosList = this.#initPixelInfosList(stageRect, textFields);
     this.#ctx.clearRect(0, 0, stageRect.width, stageRect.height);
     this.#ctx.restore();
 
     return {
       textFields,
-      dotPositions,
+      pixelInfosList,
     };
   };
 
@@ -145,7 +145,7 @@ class TextFrame {
     return textFields;
   };
 
-  #getDotPositions = (stageRect, textFields) => {
+  #initPixelInfosList = (stageRect, textFields) => {
     const dots = [];
     const imageData = this.#ctx.getImageData(
       0, 0, stageRect.width, stageRect.height

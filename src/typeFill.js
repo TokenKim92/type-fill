@@ -29,7 +29,8 @@ class TypeFill {
   #text;
   #fillFigureList = [];
   #textFrame;
-  #textFrameMetrics;
+  #orgPixelInfosList;
+  #pixelInfosList;
   #stageSize;
   #backgroundSize;
   #fillTime;
@@ -129,6 +130,7 @@ class TypeFill {
     this.#ctx.putImageData(this.#imageData, 0, 0);
     this.#curFillCount = 0;
     this.#fillFigureList.forEach((fillFigure) => fillFigure.reset());
+    this.#resetPixelInfosList();
 
     if (!this.#isProcessing) {
       this.#isProcessing = true;
@@ -316,8 +318,8 @@ class TypeFill {
   };
 
   #initFrameMetricsAndFillFigure = () => {
-    this.#textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
-    this.#fillFigureList = this.#textFrameMetrics.textFields.map(
+    const textFrameMetrics = this.#textFrame.getMetrics(this.#stageSize);
+    this.#fillFigureList = textFrameMetrics.textFields.map(
       (textField) =>
         new this.#fillCreator(
           this.#fillTime,
@@ -327,6 +329,16 @@ class TypeFill {
         )
     );
     this.#textCount = this.#fillFigureList.length;
+
+    this.#orgPixelInfosList = textFrameMetrics.pixelInfosList;
+    this.#resetPixelInfosList();
+  };
+
+  #resetPixelInfosList = () => {
+    this.#pixelInfosList = new Array();
+    this.#orgPixelInfosList.forEach((pixelInfos) =>
+      this.#pixelInfosList.push([...pixelInfos])
+    );
   };
 
   #draw = () => {
@@ -344,26 +356,29 @@ class TypeFill {
   #fillText = () => {
     for (let i = 0; i < this.#textCount; i++) {
       const fillFigure = this.#fillFigureList[i];
-      const dots = this.#textFrameMetrics.dotPositions[i];
+      const pixelInfos = this.#pixelInfosList[i];
 
       fillFigure.update();
-      dots
-        .filter((dot) =>
-          this.#fillCollide(
-            dot,
-            fillFigure.Metrics.point,
-            fillFigure.Metrics.area
-          )
-        )
-        .forEach((dot) => {
-          const index = dot.x + dot.y * this.#stageSize.width;
+      this.#pixelInfosList[i] = pixelInfos.filter((pixel) => {
+        const result = this.#fillCollide(
+          pixel,
+          fillFigure.Metrics.point,
+          fillFigure.Metrics.area
+        );
+
+        if (result) {
+          const index = pixel.x + pixel.y * this.#stageSize.width;
 
           this.#imageData.data[index * 4] = this.#fontRGB.r;
           this.#imageData.data[index * 4 + 1] = this.#fontRGB.g;
           this.#imageData.data[index * 4 + 2] = this.#fontRGB.b;
-          this.#imageData.data[index * 4 + 3] = dot.alpha;
-        });
+          this.#imageData.data[index * 4 + 3] = pixel.alpha;
+        }
+
+        return !result;
+      });
     }
+
     this.#ctx.putImageData(this.#imageData, 0, 0);
   };
 
