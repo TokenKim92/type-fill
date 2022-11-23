@@ -100,6 +100,12 @@ class TypeFill {
   }
 
   start = () => {
+    if (!this.#isInitialized) {
+      setTimeout(() => this.start(), TypeFill.OPACITY_TRANSITION_TIME);
+
+      return;
+    }
+
     if (!this.#isProcessing) {
       this.#isProcessing = true;
       requestAnimationFrame(this.#draw);
@@ -114,6 +120,8 @@ class TypeFill {
 
   restart = () => {
     if (!this.#isInitialized) {
+      setTimeout(() => this.start(), TypeFill.OPACITY_TRANSITION_TIME);
+
       return;
     }
 
@@ -322,14 +330,13 @@ class TypeFill {
   };
 
   #draw = () => {
-    if (this.#isInitialized) {
-      if (this.#curFillCount > this.#targetFillCount || !this.#isProcessing) {
-        return;
-      }
-
-      this.#fillText();
-      this.#curFillCount++;
+    if (this.#curFillCount > this.#targetFillCount || !this.#isProcessing) {
+      this.#isProcessing = false;
+      return;
     }
+
+    this.#fillText();
+    this.#curFillCount++;
 
     requestAnimationFrame(this.#draw);
   };
