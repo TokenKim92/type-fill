@@ -15,7 +15,7 @@ import Vertical from './vertical.js';
 
 class TypeFill {
   static FPS = 60;
-  static FPS_TIME = 1000 / TypeFill.FPS;
+  static FPS_TIME = (1000 / TypeFill.FPS) | 0;
   static DEFAULT_CREATOR = Ripple;
   static DEFAULT_COLLIDE = collideRipple;
   static OPACITY_TRANSITION_TIME = 300;
@@ -43,6 +43,8 @@ class TypeFill {
   #canvasContainer;
   #imageData;
   #isInitialized = false;
+  #handleStopped;
+  #previousTime = 0;
   #fillCollide;
   #fillCreator;
   #fillRatio;
@@ -128,6 +130,10 @@ class TypeFill {
       this.#isProcessing = true;
       requestAnimationFrame(this.#draw);
     }
+  };
+
+  setHandleStopped = (action) => {
+    this.#handleStopped = action;
   };
 
   #initFillAttributes = (fillAttributes) => {
@@ -356,14 +362,22 @@ class TypeFill {
     );
   };
 
-  #draw = () => {
-    if (this.#curFillCount > this.#targetFillCount || !this.#isProcessing) {
-      this.#isProcessing = false;
+  #draw = (currentTime) => {
+    if (!this.#isProcessing) {
       return;
     }
 
-    this.#fillText();
-    this.#curFillCount++;
+    if (this.#curFillCount > this.#targetFillCount) {
+      this.#isProcessing = false;
+      this.#handleStopped && this.#handleStopped();
+
+      return;
+    }
+
+    if (currentTime - this.#previousTime > TypeFill.FPS_TIME) {
+      this.#fillText();
+      this.#previousTime = currentTime;
+    }
 
     requestAnimationFrame(this.#draw);
   };
@@ -395,6 +409,7 @@ class TypeFill {
     }
 
     this.#ctx.putImageData(this.#imageData, 0, 0);
+    this.#curFillCount++;
   };
 
   #getClientSize = (elementObj, paddingWidth = 0, paddingHeight = 0) => {
