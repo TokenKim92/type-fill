@@ -5,7 +5,7 @@ import {
   parseIntForPadding,
   parseIntForMargin,
 } from './utils.js';
-import TextFrame from './textFrame.js';
+import TextFrame from './TextFrame.js';
 
 export default class BaseType {
   static FPS = 60;

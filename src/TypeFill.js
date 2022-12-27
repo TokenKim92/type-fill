@@ -1,4 +1,4 @@
-import Ripple from './ripple.js';
+import BaseType from './BaseType.js';
 import {
   checkType,
   primitiveType,
@@ -6,9 +6,9 @@ import {
   collideHorizontal,
   collideVertical,
 } from './utils.js';
-import Horizontal from './horizontal.js';
-import Vertical from './vertical.js';
-import BaseType from './BaseType.js';
+import Ripple from './Ripple.js';
+import Horizontal from './Horizontal.js';
+import Vertical from './Vertical.js';
 
 export default class TypeFill extends BaseType {
   static DEFAULT_CREATOR = Ripple;
