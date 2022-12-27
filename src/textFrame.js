@@ -1,52 +1,209 @@
-class TextFrame {
+export default class TextFrame {
   #ctx;
   #rootStyle;
-  #text;
   #alphaValue;
-  #baseLinePos;
+  #text;
+  #particleSortMode;
+  #lineTextAttributes = [];
+  #textFields = [];
+  #pixelInfosList = [];
+  #rect;
+  #handleSort;
 
-  constructor(ctx, rootStyle, text, alphaValue) {
+  constructor(ctx, styles, text, particleSortMode) {
     this.#ctx = ctx;
-    this.#rootStyle = rootStyle;
+    this.#rootStyle = styles.rootStyle;
+    this.#alphaValue = styles.alphaValue;
     this.#text = text;
-    this.#alphaValue = alphaValue;
+    this.#particleSortMode = particleSortMode;
+
+    this.#handleSort = this.#getSortHandler(particleSortMode);
   }
 
-  getMetrics = (stageRect) => {
-    this.#baseLinePos = [];
-    this.#ctx.save();
+  resize = () => {
+    this.#lineTextAttributes = [];
+    this.#textFields = [];
+    this.#pixelInfosList = undefined;
+    this.#rect = undefined;
+  };
 
-    this.#ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
-    this.#ctx.fillStyle = `rgba(255, 255, 255, ${this.#alphaValue})`;
-    this.#ctx.textBaseline = 'middle';
+  getFittedRect = (stageSize) => {
+    if (this.#rect) {
+      return this.#rect;
+    }
 
-    const textFields = [];
-    if (this.#calculateLineCount(stageRect) === 1) {
-      this.#drawTextFrame(stageRect, this.#text);
-      this.#getTextFields(this.#text).forEach((textField) =>
-        textFields.push(textField)
+    const oneLineHandler = (stageSize) => {
+      const textFields = this.#getTextFields(
+        this.#text,
+        this.#drawTextFrame(stageSize, this.#text)
       );
-    } else {
-      const textList = this.#getTextList(stageRect);
+      const lastTextField = textFields[textFields.length - 1];
+      let top = stageSize.height;
+      let bottom = 0;
+      textFields.forEach((textField) => {
+        top > textField.y && (top = textField.y);
+        bottom < textField.y + textField.height &&
+          (bottom = textField.y + textField.height);
+      });
+
+      return {
+        x: textFields[0].x,
+        y: top,
+        width: lastTextField.x + lastTextField.width - textFields[0].x,
+        height: bottom - top,
+      };
+    };
+
+    const multiLineHandler = (stageSize) => {
+      const textList = this.#getTextList(stageSize);
+      let textFields;
+      let lastTextField, lastTextFieldRight;
+      let left = stageSize.width;
+      let right = 0;
+      let top = stageSize.height;
+      let bottom = 0;
+
       textList.forEach((lineText, index) => {
-        this.#drawTextFrame(stageRect, lineText, index);
-        this.#getTextFields(lineText, index).forEach((textField) =>
+        textFields = this.#getTextFields(
+          lineText,
+          this.#drawTextFrame(stageSize, lineText, index)
+        );
+        lastTextField = textFields[textFields.length - 1];
+        lastTextFieldRight = lastTextField.x + lastTextField.width;
+
+        left > textFields[0].x && (left = textFields[0].x);
+        right < lastTextFieldRight && (right = lastTextFieldRight);
+
+        if (index === 0) {
+          textFields.forEach(
+            (textField) => top > textField.y && (top = textField.y)
+          );
+        } else if (index === textList.length - 1) {
+          textFields.forEach(
+            (textField) =>
+              bottom < textField.y + textField.height &&
+              (bottom = textField.y + textField.height)
+          );
+        }
+      });
+
+      return {
+        x: left,
+        y: top,
+        width: right - left,
+        height: bottom - top,
+      };
+    };
+
+    this.#ctx.save();
+    this.#initContext();
+
+    this.#rect =
+      this.#calculateLineCount(stageSize) === 1
+        ? oneLineHandler(stageSize)
+        : multiLineHandler(stageSize);
+
+    this.#ctx.clearRect(0, 0, stageSize.width, stageSize.height);
+    this.#ctx.restore();
+
+    return this.#rect;
+  };
+
+  getMetrics = (stageSize) => {
+    if (this.#textFields.length && this.#pixelInfosList) {
+      return {
+        textFields: this.#textFields,
+        pixelInfosList: this.#pixelInfosList,
+      };
+    }
+
+    const oneLineHandler = (stageSize) => {
+      const lineTextAttributes = [];
+      const baseLine = this.#drawTextFrame(stageSize, this.#text);
+
+      lineTextAttributes.push({
+        baseLine,
+        lineText: this.#text,
+      });
+
+      return {
+        lineTextAttributes,
+        textFields: this.#getTextFields(this.#text, baseLine),
+      };
+    };
+
+    const multiLineHandler = (stageSize) => {
+      const lineTextAttributes = [];
+      const textFields = [];
+      const textList = this.#getTextList(stageSize);
+      let baseLine;
+
+      textList.forEach((lineText, index) => {
+        baseLine = this.#drawTextFrame(stageSize, lineText, index);
+        lineTextAttributes.push({
+          baseLine,
+          lineText,
+        });
+
+        this.#getTextFields(lineText, baseLine).forEach((textField) =>
           textFields.push(textField)
         );
       });
-    }
 
-    const pixelInfosList = this.#initPixelInfosList(stageRect, textFields);
-    this.#ctx.clearRect(0, 0, stageRect.width, stageRect.height);
+      return {
+        lineTextAttributes,
+        textFields,
+      };
+    };
+
+    this.#ctx.save();
+    this.#initContext();
+
+    const result =
+      this.#calculateLineCount(stageSize) === 1
+        ? oneLineHandler(stageSize)
+        : multiLineHandler(stageSize);
+
+    this.#lineTextAttributes = result.lineTextAttributes;
+    this.#textFields = result.textFields;
+    this.#pixelInfosList = this.#initPixelInfosList(
+      stageSize,
+      result.textFields
+    );
+
+    this.#ctx.clearRect(0, 0, stageSize.width, stageSize.height);
     this.#ctx.restore();
 
     return {
-      textFields,
-      pixelInfosList,
+      textFields: this.#textFields,
+      pixelInfosList: this.#pixelInfosList,
     };
   };
 
-  #getTextList = (stageRect) => {
+  drawText = () => {
+    this.#ctx.save();
+    this.#initContext(this.#rootStyle.color);
+
+    this.#lineTextAttributes.forEach((lineTextAttribute) => {
+      this.#ctx.fillText(
+        lineTextAttribute.lineText,
+        lineTextAttribute.baseLine.x,
+        lineTextAttribute.baseLine.y
+      );
+    });
+
+    this.#ctx.restore();
+  };
+
+  #initContext = (fillStyle = undefined) => {
+    fillStyle ?? (fillStyle = `rgba(255, 255, 255, ${this.#alphaValue})`);
+
+    this.#ctx.font = `${this.#rootStyle.fontWeight} ${this.#rootStyle.fontSize} ${this.#rootStyle.fontFamily}`; //prettier-ignore
+    this.#ctx.fillStyle = fillStyle;
+    this.#ctx.textBaseline = 'middle';
+  };
+
+  #getTextList = (stageSize) => {
     const newTextList = [];
 
     this.#text.split('\n').forEach((lineText) => {
@@ -57,7 +214,7 @@ class TextFrame {
 
       textList.forEach((text, index) => {
         isOutOfStage =
-          this.#ctx.measureText(prevText + text).width > stageRect.width;
+          this.#ctx.measureText(prevText + text).width > stageSize.width;
         isLastText = index === textList.length - 1;
 
         if (isOutOfStage) {
@@ -71,25 +228,30 @@ class TextFrame {
       });
     });
 
+    while (newTextList.includes('')) {
+      const index = newTextList.indexOf('');
+      newTextList.splice(index, 1);
+    }
+
     return newTextList;
   };
 
-  #drawTextFrame = (stageRect, text, index = 0) => {
+  #drawTextFrame = (stageSize, text, index = 0) => {
     const totalTextMetrics = this.#ctx.measureText(text);
     const baseLinePos = this.#calculateBaseLinePos(
-      stageRect,
+      stageSize,
       totalTextMetrics,
       index
     );
-    this.#baseLinePos.push(baseLinePos);
 
     this.#ctx.fillText(text, baseLinePos.x, baseLinePos.y);
+
+    return baseLinePos;
   };
 
-  #getTextFields = (text, index = 0) => {
+  #getTextFields = (text, baseLinePos) => {
     const textFields = [];
     const textWidthList = [];
-    const baseLinePos = this.#baseLinePos[index];
     let character;
     let prevCharacter = '';
     let textMetrics;
@@ -145,45 +307,48 @@ class TextFrame {
     return textFields;
   };
 
-  #initPixelInfosList = (stageRect, textFields) => {
-    const dots = [];
+  #initPixelInfosList = (stageSize, textFields) => {
+    const mainList = [];
+    const secondList = [];
     const imageData = this.#ctx.getImageData(
-      0, 0, stageRect.width, stageRect.height
+      0, 0, stageSize.width, stageSize.height
     ); // prettier-ignore
 
     let alpha = 0;
     textFields.forEach((textField, index) => {
-      dots.push(new Array());
+      this.#particleSortMode === 'field' && mainList.push(new Array());
 
       for (let y = textField.y; y < textField.y + textField.height; y++) {
         for (let x = textField.x; x < textField.x + textField.width; x++) {
-          alpha = imageData.data[(x + y * stageRect.width) * 4 + 3];
-          alpha && dots[index].push({ x, y, alpha });
+          alpha = imageData.data[(x + y * stageSize.width) * 4 + 3];
+          alpha && this.#handleSort(mainList, secondList, index, x, y, alpha);
         }
       }
     });
 
-    return dots;
+    return { mainList, secondList };
   };
 
-  #calculateBaseLinePos = (stageRect, textMetrics, index) => {
+  #calculateBaseLinePos = (stageSize, textMetrics, index) => {
     const calculateBaseLinePosX = () => {
       switch (this.#rootStyle.textAlign) {
         case 'end':
-          return Math.round(stageRect.width - textMetrics.width);
+          return Math.round(
+            stageSize.width - textMetrics.actualBoundingBoxRight
+          );
         case 'center':
-          return Math.round((stageRect.width - textMetrics.width) / 2);
+          return Math.round((stageSize.width - textMetrics.width) / 2);
         case 'justify':
           console.warn("'justify' option doesn't work.");
         case 'start':
         default:
-          return 0;
+          return Math.round(textMetrics.actualBoundingBoxLeft);
       }
     };
 
     // TODO: find more case
     const calculateBaseLinePosY = (index) => {
-      const lineHeight = this.#calculateLineHeight(stageRect);
+      const lineHeight = this.#calculateLineHeight(stageSize);
       const baseLinePosY =
         (lineHeight +
           textMetrics.actualBoundingBoxAscent -
@@ -198,21 +363,41 @@ class TextFrame {
     };
   };
 
-  #calculateLineHeight = (stageRect) => {
+  #calculateLineHeight = (stageSize) => {
     if (this.#rootStyle.lineHeight !== 'normal') {
       return parseInt(this.#rootStyle.lineHeight);
     }
 
     //TODO: This is an estimate and may not be accurate!
-    const height = parseInt(this.#rootStyle.fontSize) * 1.2;
-    const lineCount = Math.round(stageRect.height / height);
+    const heightOffset = 1.2;
+    const height = parseInt(this.#rootStyle.fontSize) * heightOffset;
+    const lineCount = Math.round(stageSize.height / height);
 
-    return stageRect.height / lineCount;
+    return stageSize.height / lineCount;
   };
 
   #calculateLineCount = (stageRect) => {
     return Math.round(stageRect.height / this.#calculateLineHeight(stageRect));
   };
-}
 
-export default TextFrame;
+  #getSortHandler = (mode) => {
+    switch (mode) {
+      case 'position':
+        return (posList, alphaList, garbageIndex, x, y, alpha) => {
+          if (!posList[x]) {
+            posList[x] = new Array();
+            alphaList[x] = new Array();
+          }
+
+          if (!posList[x].includes(y)) {
+            posList[x].push(y);
+            alphaList[x].push(alpha);
+          }
+        };
+      case 'field':
+      default:
+        return (fieldList, garbageList, index, x, y, alpha) =>
+          fieldList[index].push({ x, y, alpha });
+    }
+  };
+}
